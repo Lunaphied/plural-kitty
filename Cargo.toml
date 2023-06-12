@@ -6,7 +6,10 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = { version = "0.6.18", features = ["headers"] }
 hyper = { version = "0.14.26", features = ["full"] }
+tokio = { version = "1.28.2", features = ["full"] }
+tracing-subscriber = "0.3.17"
 
 [dependencies.matrix-sdk]
 git = "https://github.com/matrix-org/matrix-rust-sdk.git"
