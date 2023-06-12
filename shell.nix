@@ -10,6 +10,7 @@ pkgs.mkShell rec {
 		podman
 		podman-compose
 		nginx
+		postgresql_12
   ];
   RUSTC_VERSION = pkgs.lib.readFile ./rust-toolchain;
   # https://github.com/rust-lang/rust-bindgen#environment-variables
@@ -35,4 +36,5 @@ pkgs.mkShell rec {
       ''-I"${pkgs.glib.dev}/include/glib-2.0"''
       ''-I${pkgs.glib.out}/lib/glib-2.0/include/''
     ];
+	PGPASSWORD = "beepboop";
 }

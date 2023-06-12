@@ -6,13 +6,25 @@ use axum::{
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body};
-use std::net::SocketAddr;
+use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
+use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use tokio::sync::RwLock;
+
+#[derive(Debug, Default, Clone)]
+struct ProxyCache {
+    user_ids: Arc<RwLock<HashMap<String, String>>>,
+}
 
 type Client = hyper::client::Client<HttpConnector, Body>;
 #[tokio::main]
 async fn main() {
     tracing_subscriber::fmt::init();
     let client = Client::new();
+    let pool = PgPoolOptions::new()
+        .max_connections(5)
+        .connect("postgres://synapse:beepboop@localhost/synapse")
+        .await
+        .unwrap();
 
     let app = Router::new()
         .route(
@@ -20,7 +32,7 @@ async fn main() {
             put(msg_send_handler).options(passthrough_handler),
         )
         .fallback(passthrough_handler)
-        .with_state(client);
+        .with_state((client, pool, ProxyCache::default()));
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 4000));
     println!("reverse proxy listening on {}", addr);
@@ -31,7 +43,7 @@ async fn main() {
 }
 
 async fn msg_send_handler(
-    State(client): State<Client>,
+    State((client, pool, cache)): State<(Client, Pool<Postgres>, ProxyCache)>,
     Path((room_id, event_type, txn_id)): Path<(String, String, String)>,
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
     mut req: Request<Body>,
@@ -43,8 +55,27 @@ async fn msg_send_handler(
         .map(|v| v.as_str())
         .unwrap_or(path);
 
-    println!("GOT {room_id} {event_type} {txn_id} {auth:?}");
-    let uri = format!("http://127.0.0.1:8008/_matrix/client/v3/rooms/{room_id}/state/m.room.member/@test:test.local");
+    println!("GOT {room_id} {event_type} {txn_id} {}", auth.token());
+    let read_lock = cache.user_ids.read().await;
+    let user_id = match read_lock.get(auth.token()) {
+        Some(user_id) => user_id.clone(),
+        None => {
+            drop(read_lock);
+            let user_id = sqlx::query("SELECT user_id FROM access_tokens WHERE token = $1")
+                .bind(auth.token())
+                .map(|row| row.get::<String, usize>(0))
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            let mut write_lock = cache.user_ids.write().await;
+            write_lock.insert(auth.token().to_owned(), user_id.clone());
+            user_id
+        }
+    };
+
+    let uri = format!(
+        "http://127.0.0.1:8008/_matrix/client/v3/rooms/{room_id}/state/m.room.member/{user_id}"
+    );
     let body = r#"{ "membership": "join", "displayname": "kittycat"}"#;
     let profile_req = Request::put(uri)
         .header("Accept", "application/json")
@@ -62,7 +93,7 @@ async fn msg_send_handler(
 }
 
 async fn passthrough_handler(
-    State(client): State<Client>,
+    State((client, _, _)): State<(Client, Pool<Postgres>, ProxyCache)>,
     mut req: Request<Body>,
 ) -> Response<Body> {
     let path = req.uri().path();

@@ -8,6 +8,7 @@ edition = "2021"
 [dependencies]
 axum = { version = "0.6.18", features = ["headers"] }
 hyper = { version = "0.14.26", features = ["full"] }
+sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres"] }
 tokio = { version = "1.28.2", features = ["full"] }
 tracing-subscriber = "0.3.17"
 
