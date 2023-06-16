@@ -1,3 +1,7 @@
+mod bot;
+mod config;
+
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     headers::{authorization::Bearer, Authorization},
@@ -7,8 +11,10 @@ use axum::{
 };
 use hyper::{client::HttpConnector, Body};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
-use std::{collections::HashMap, net::SocketAddr, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::RwLock;
+
+use crate::config::CONFIG;
 
 #[derive(Debug, Default, Clone)]
 struct ProxyCache {
@@ -17,14 +23,27 @@ struct ProxyCache {
 
 type Client = hyper::client::Client<HttpConnector, Body>;
 #[tokio::main]
-async fn main() {
+async fn main() -> anyhow::Result<()> {
     tracing_subscriber::fmt::init();
+    let bot_client = match bot::create_client().await {
+        Ok(client) => client,
+        Err(e) => {
+            tracing::error!("{e:#}");
+            std::process::exit(1);
+        }
+    };
+    bot::init_db().await.context("Error connecting to bot DB")?;
+    tokio::spawn(async {
+        if let Err(e) = bot::init(bot_client).await {
+            tracing::error!("Bot error: {e:#}");
+            std::process::exit(1);
+        }
+    });
     let client = Client::new();
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect("postgres://synapse:beepboop@localhost/synapse")
-        .await
-        .unwrap();
+        .connect(&CONFIG.synapse.db.db_uri())
+        .await?;
 
     let app = Router::new()
         .route(
@@ -34,12 +53,11 @@ async fn main() {
         .fallback(passthrough_handler)
         .with_state((client, pool, ProxyCache::default()));
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 4000));
-    println!("reverse proxy listening on {}", addr);
-    axum::Server::bind(&addr)
+    println!("reverse proxy listening on {}", CONFIG.listen);
+    axum::Server::bind(&CONFIG.listen)
         .serve(app.into_make_service())
-        .await
-        .unwrap();
+        .await?;
+    Ok(())
 }
 
 async fn msg_send_handler(
@@ -74,7 +92,8 @@ async fn msg_send_handler(
     };
 
     let uri = format!(
-        "http://127.0.0.1:8008/_matrix/client/v3/rooms/{room_id}/state/m.room.member/{user_id}"
+        "{}/_matrix/client/v3/rooms/{room_id}/state/m.room.member/{user_id}",
+        CONFIG.synapse.host
     );
     let body = r#"{ "membership": "join", "displayname": "kittycat"}"#;
     let profile_req = Request::put(uri)
@@ -87,7 +106,7 @@ async fn msg_send_handler(
         eprintln!("BAD {e}");
     }
 
-    let uri = format!("http://127.0.0.1:8008{}", path_query);
+    let uri = format!("{}{}", CONFIG.synapse.host, path_query);
     *req.uri_mut() = Uri::try_from(uri).unwrap();
     client.request(req).await.unwrap()
 }
@@ -104,10 +123,7 @@ async fn passthrough_handler(
         .unwrap_or(path);
 
     println!("BEEEEP");
-
-    let uri = format!("http://127.0.0.1:8008{}", path_query);
-
+    let uri = format!("{}{}", CONFIG.synapse.host, path_query);
     *req.uri_mut() = Uri::try_from(uri).unwrap();
-
     client.request(req).await.unwrap()
 }

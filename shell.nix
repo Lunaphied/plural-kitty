@@ -6,11 +6,14 @@ pkgs.mkShell rec {
     rustup
 		pkg-config
 		openssl
+		sqlite
 
 		podman
 		podman-compose
 		nginx
 		postgresql_12
+		sqlx-cli
+		jq
   ];
   RUSTC_VERSION = pkgs.lib.readFile ./rust-toolchain;
   # https://github.com/rust-lang/rust-bindgen#environment-variables
@@ -37,4 +40,5 @@ pkgs.mkShell rec {
       ''-I${pkgs.glib.out}/lib/glib-2.0/include/''
     ];
 	PGPASSWORD = "beepboop";
+	DATABASE_URL = "postgres://synapse:beepboop@localhost/proxy";
 }
