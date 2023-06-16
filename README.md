@@ -1,7 +1,7 @@
-# Plural Proxy
+# Hydra
 
-A WIP prof of concept proxy that allows plural users to switch aliases without breaking e2ee
-or generating a lot of extra events.
+A WIP tool that allows plural users to switch aliases without breaking e2ee or
+generating a lot of extra events.
 
 The proxy works by sitting in front of synapses message send endpoint. When a plural user
 sends a message, the proxy will check if they have the correct name and avatar in that room,
