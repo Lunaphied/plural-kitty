@@ -1,38 +1,16 @@
-mod late_init;
-mod parser;
 mod commands;
+mod parser;
 
 use std::time::Duration;
 
 use anyhow::{anyhow, Context};
 use matrix_sdk::{
-    config::SyncSettings,
-    room::Room,
-    ruma::events::room::{
-        member::StrippedRoomMemberEvent,
-        message::{
-            MessageType::Text, OriginalSyncRoomMessageEvent, RoomMessageEventContent,
-        },
-    },
-    Client, Session,
+    config::SyncSettings, room::Room, ruma::events::room::member::StrippedRoomMemberEvent, Client,
+    Session,
 };
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres};
 use tokio::time::sleep;
 
-use crate::{bot::parser::CmdPart, config::CONFIG};
-
-use self::{late_init::LateInit, parser::Cmd};
-
-static POOL: LateInit<Pool<Postgres>> = LateInit::new();
-
-pub async fn init_db() -> anyhow::Result<()> {
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&CONFIG.bot.db.db_uri())
-        .await?;
-    POOL.init(pool);
-    Ok(())
-}
+use crate::config::CONFIG;
 
 pub async fn create_client() -> anyhow::Result<Client> {
     async fn client() -> anyhow::Result<Client> {
@@ -141,4 +119,3 @@ pub async fn init(client: Client) -> anyhow::Result<()> {
 
     Ok(())
 }
-

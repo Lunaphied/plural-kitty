@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+mod alter;
+
 use std::future::Future;
 
 use matrix_sdk::room::{Joined, Room};
@@ -11,10 +14,13 @@ use matrix_sdk::ruma::events::room::message::{
 use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::Client;
 
-use crate::bot::parser::Cmd;
-use crate::bot::parser::CmdPart;
+use crate::bot::parser::{Cmd, CmdPart};
 
 pub type ErrList = Vec<anyhow::Error>;
+
+const HELP: &str = "
+# Hydra Help
+";
 
 pub async fn dm_handler(
     event: OriginalSyncRoomMessageEvent,
@@ -29,15 +35,21 @@ pub async fn dm_handler(
         if !room.is_direct().await? {
             return Ok(());
         }
+        let handler = Handler {
+            room: room.clone(),
+            cmd_event_id: event.event_id.clone(),
+        };
         match event.content.msgtype {
             MessageType::Text(message_content) => {
                 let mut cmd = Cmd::parse(&message_content)?;
                 tracing::debug!("{cmd:?}");
                 if let Some(CmdPart::Word(word)) = cmd.pop() {
                     match word.as_str() {
+                        "!alter" | "!headmate" | "!alias" => handler.run(alter::exec(cmd, &room)).await,
+                        "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                         _ => {
                             let content = RoomMessageEventContent::notice_markdown(
-                                "Unknown command. Type `help` for for a list command and what they do.",
+                                "Unknown command. Type `!help` for for a list command and what they do.",
                             );
                             room.send(content, None).await?;
                         }
@@ -245,10 +257,10 @@ impl Drop for CmdRector {
 
 pub async fn help(mut cmd: Cmd, room: &Joined) -> anyhow::Result<ErrList> {
     let word = cmd.pop_word();
-    // let message = match word.as_deref() {
-    //     _ => HELP,
-    // };
-    // let content = RoomMessageEventContent::notice_markdown(message);
-    // room.send(content, None).await?;
+    let message = match word.as_deref() {
+        _ => HELP,
+    };
+    let content = RoomMessageEventContent::notice_markdown(message);
+    room.send(content, None).await?;
     Ok(vec![])
 }
