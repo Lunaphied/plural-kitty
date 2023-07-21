@@ -1,3 +1,6 @@
+#![allow(dead_code)]
+
+use anyhow::Context;
 use sqlx::Row;
 
 use super::models::Identity;
@@ -44,25 +47,28 @@ pub async fn create_activator(mxid: &str, name: &str, activator: &str) -> sqlx::
     sqlx::query("INSERT INTO activators (mxid, name, value) VALUES ($1, $2, $3);")
         .bind(mxid)
         .bind(name)
+        .bind(activator)
         .execute(&*POOL)
         .await
         .map(|_| ())
 }
 
-pub async fn get_idenity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
+pub async fn get_idenity(mxid: &str, name: &str) -> anyhow::Result<Identity> {
     let mut identity: Identity = sqlx::query_as(
-        "SELECT (mxid, name, display_name, avatar) FROM identities WHERE mxid = $1 AND name = $2;",
+        "SELECT * FROM identities WHERE mxid = $1 AND name = $2;",
     )
     .bind(mxid)
     .bind(name)
     .fetch_one(&*POOL)
-    .await?;
+    .await
+    .context("Error getting identities")?;
     identity.activators =
         sqlx::query("SELECT value FROM activators WHERE mxid = $1 AND name = $2;")
             .bind(mxid)
             .bind(name)
             .map(|row| row.get::<String, usize>(0))
             .fetch_all(&*POOL)
-            .await?;
+            .await
+            .context("Error getting activators")?;
     Ok(identity)
 }

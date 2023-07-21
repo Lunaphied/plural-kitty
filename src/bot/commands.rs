@@ -45,7 +45,9 @@ pub async fn dm_handler(
                 tracing::debug!("{cmd:?}");
                 if let Some(CmdPart::Word(word)) = cmd.pop() {
                     match word.as_str() {
-                        "!alter" | "!headmate" | "!alias" => handler.run(alter::exec(cmd, &room)).await,
+                        "!alter" | "!headmate" | "!alias" => {
+                            handler.run(alter::exec(cmd, &room, &event.sender)).await
+                        }
                         "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                         _ => {
                             let content = RoomMessageEventContent::notice_markdown(
