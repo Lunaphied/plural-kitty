@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS users (
     mxid            TEXT PRIMARY KEY,
-    current_ident   BIGINT
+    current_ident   TEXT
 );
 
 CREATE TABLE IF NOT EXISTS identities (

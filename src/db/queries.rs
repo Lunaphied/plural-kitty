@@ -101,7 +101,17 @@ pub async fn create_activator(mxid: &str, name: &str, activator: &str) -> sqlx::
         .map(|_| ())
 }
 
+pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
+    sqlx::query("SELECT 1 FROM identities WHERE mxid = $1 AND name = $2;")
+        .bind(mxid)
+        .bind(name)
+        .execute(&*POOL)
+        .await
+        .map(|res| res.rows_affected() > 0)
+}
+
 pub async fn get_identity(mxid: &str, name: &str) -> anyhow::Result<Identity> {
+    tracing::debug!("Getting {mxid} {name}");
     let mut identity: Identity =
         sqlx::query_as("SELECT * FROM identities WHERE mxid = $1 AND name = $2;")
             .bind(mxid)
@@ -138,14 +148,14 @@ pub async fn set_current_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
 }
 
 pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity>> {
-    match sqlx::query("SELECT current_ident FROM users WHERE mxid = $1")
+    match sqlx::query("SELECT current_ident FROM users WHERE mxid = $1;")
         .bind(mxid)
-        .map(|row| row.get::<String, usize>(0))
+        .map(|row| row.get::<Option<String>, usize>(0))
         .fetch_optional(&*POOL)
         .await
         .context("Error getting current_ident")?
     {
-        Some(name) => get_identity(mxid, &name).await.map(Some),
-        None => Ok(None),
+        Some(Some(name)) => get_identity(mxid, &name).await.map(Some),
+        _ => Ok(None),
     }
 }

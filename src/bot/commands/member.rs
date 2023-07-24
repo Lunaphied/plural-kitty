@@ -90,6 +90,9 @@ async fn activator_cmd(
     let sub_command = cmd
         .pop_word()
         .ok_or_else(|| anyhow!("Please specify a sub-command"))?;
+    if !queries::identity_exists(user.as_str(), name).await? {
+        bail!("Member {name} does not exist");
+    }
     match sub_command.as_str() {
         "add" => {
             let activator = cmd.pop_word().ok_or_else(|| {

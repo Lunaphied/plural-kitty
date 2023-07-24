@@ -38,6 +38,7 @@ pub async fn dm_handler(
         // Only respond to DMs
         tracing::debug!("Processing event {}", event.event_id);
         if !room.is_direct().await? {
+            tracing::debug!("Ignoring non-DM message");
             return Ok(());
         }
         tokio::spawn({

@@ -7,7 +7,7 @@ use axum::{
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body, StatusCode};
-use matrix_sdk::ruma::events::room::member::OriginalRoomMemberEvent;
+use matrix_sdk::ruma::events::room::member::RoomMemberEventContent;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use std::{collections::HashMap, str::from_utf8, sync::Arc};
 use tokio::sync::RwLock;
@@ -94,9 +94,11 @@ async fn update_indentity(
             let body = from_utf8(&body).unwrap_or("[body not UTF8]");
             bail!("Error getting user's join event:\n\n{body}");
         }
-        let mut join_event = serde_json::from_slice::<OriginalRoomMemberEvent>(&body)
-            .context("Get event response not valid")?
-            .content;
+        if let Ok(s) = from_utf8(&body) {
+            tracing::debug!("BODY {s}");
+        }
+        let mut join_event = serde_json::from_slice::<RoomMemberEventContent>(&body)
+            .context("Get event response not valid")?;
 
         let mut changed = false;
 
@@ -105,10 +107,18 @@ async fn update_indentity(
                 join_event.displayname = Some(ident_name);
                 changed = true;
             }
+            (Some(ident_name), None) => {
+                join_event.displayname = Some(ident_name);
+                changed = true;
+            }
             _ => {}
         }
         match (identity.avatar, &join_event.avatar_url) {
             (Some(ident_avatar), Some(curr_avatar)) if ident_avatar != *curr_avatar => {
+                join_event.avatar_url = Some(ident_avatar.into());
+                changed = true;
+            }
+            (Some(ident_avatar), None) => {
                 join_event.avatar_url = Some(ident_avatar.into());
                 changed = true;
             }
