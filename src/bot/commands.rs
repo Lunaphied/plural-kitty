@@ -1,10 +1,12 @@
 #![allow(dead_code)]
-mod alter;
+mod member;
+mod system;
 
 use std::future::Future;
 
-use matrix_sdk::room::{Joined, Room};
-use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType;
+use anyhow::Context;
+use matrix_sdk::room::{Joined, Receipts, Room};
+use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType as ReactType;
 use matrix_sdk::ruma::events::reaction::ReactionEventContent;
 use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::ruma::events::relation::Annotation;
@@ -15,11 +17,13 @@ use matrix_sdk::ruma::OwnedEventId;
 use matrix_sdk::Client;
 
 use crate::bot::parser::{Cmd, CmdPart};
+use crate::db::queries;
 
 pub type ErrList = Vec<anyhow::Error>;
 
 const HELP: &str = "
-# Hydra Help
+# Plural Kitty Help
+...
 ";
 
 pub async fn dm_handler(
@@ -32,29 +36,66 @@ pub async fn dm_handler(
     }
     if let Room::Joined(room) = room {
         // Only respond to DMs
+        tracing::debug!("Processing event {}", event.event_id);
         if !room.is_direct().await? {
+            return Ok(());
+        }
+        tokio::spawn({
+            let room = room.clone();
+            let event_id = event.event_id.clone();
+            async move {
+                let new_receipts = Receipts::new().public_read_receipt(event_id);
+                if let Err(e) = room.send_multiple_receipts(new_receipts).await {
+                    tracing::error!("Error sending receipt for message: {e:#}",);
+                }
+            }
+        });
+        if queries::read(room.room_id().as_str(), event.event_id.as_str()).await? {
+            tracing::debug!("Skipping already seen message");
             return Ok(());
         }
         let handler = Handler {
             room: room.clone(),
             cmd_event_id: event.event_id.clone(),
         };
-        match event.content.msgtype {
+        match &event.content.msgtype {
             MessageType::Text(message_content) => {
                 let mut cmd = Cmd::parse(&message_content)?;
                 tracing::debug!("{cmd:?}");
                 if let Some(CmdPart::Word(word)) = cmd.pop() {
-                    match word.as_str() {
-                        "!alter" | "!headmate" | "!alias" => {
-                            handler.run(alter::exec(cmd, &room, &event.sender)).await
-                        }
-                        "!help" => handler.run_no_feddback(help(cmd, &room)).await,
-                        _ => {
-                            let content = RoomMessageEventContent::notice_markdown(
+                    if word.starts_with('!') {
+                        match word.as_str() {
+                            "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
+                            "!system" | "!s" => {
+                                handler.run(system::exec(&room, &event.sender)).await
+                            }
+                            "!help" => handler.run_no_feddback(help(cmd, &room)).await,
+                            _ => {
+                                let content = RoomMessageEventContent::notice_markdown(
                                 "Unknown command. Type `!help` for for a list command and what they do.",
                             );
-                            room.send(content, None).await?;
+                                room.send(content, None).await?;
+                            }
                         }
+                    } else if let Some(member_name) =
+                        queries::get_name_for_activator(event.sender.as_str(), &word)
+                            .await
+                            .context("Error getting activator")?
+                    {
+                        queries::set_current_identity(event.sender.as_str(), &member_name)
+                            .await
+                            .context("Error setting current member")?;
+                        room.send(
+                            RoomMessageEventContent::notice_markdown(format!(
+                                "Set current fronter to {member_name}"
+                            )),
+                            None,
+                        )
+                        .await?;
+                    } else {
+                        let msg = format!("Unknown command or activator\n\n{HELP}");
+                        room.send(RoomMessageEventContent::notice_markdown(msg), None)
+                            .await?;
                     }
                 }
             }
@@ -163,7 +204,7 @@ impl Handler {
         if let Err(e) = self
             .room
             .send_single_receipt(
-                ReceiptType::Read,
+                ReactType::Read,
                 ReceiptThread::Unthreaded,
                 self.cmd_event_id,
             )

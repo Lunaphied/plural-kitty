@@ -12,10 +12,15 @@ CREATE TABLE IF NOT EXISTS identities (
 );
 
 CREATE TABLE IF NOT EXISTS activators (
-    id              BIGSERIAL PRIMARY KEY,
     mxid            TEXT NOT NULL,
     name            TEXT NOT NULL,
-    value           TEXT NOT NULL
+    value           TEXT NOT NULL,
+    PRIMARY KEY (mxid, value)
 );
 
 CREATE INDEX activator_id ON activators (mxid, name);
+
+CREATE TABLE IF NOT EXISTS read_msgs (
+    room_id     TEXT PRIMARY KEY,
+    event_id    TEXT NOT NULL
+);

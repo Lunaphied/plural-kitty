@@ -1,4 +1,4 @@
-# Hydra
+# Plural Kitty
 
 A WIP tool that allows plural users to switch aliases without breaking e2ee or
 generating a lot of extra events.

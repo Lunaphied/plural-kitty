@@ -1503,6 +1503,7 @@ name = "matrix-sdk"
 version = "0.6.2"
 source = "git+https://github.com/matrix-org/matrix-rust-sdk.git#db5c9d8c4b87fb257cba9744409f49fbe6f54012"
 dependencies = [
+ "anyhow",
  "anymap2",
  "async-stream",
  "async-trait",

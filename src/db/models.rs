@@ -7,3 +7,9 @@ pub struct Identity {
     #[sqlx(default)]
     pub activators: Vec<String>,
 }
+
+#[derive(sqlx::FromRow)]
+pub struct ActivatorInfo {
+    pub name: String,
+    pub value: String,
+}
