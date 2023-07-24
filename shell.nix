@@ -40,5 +40,5 @@ pkgs.mkShell rec {
       ''-I${pkgs.glib.out}/lib/glib-2.0/include/''
     ];
 	PGPASSWORD = "beepboop";
-	DATABASE_URL = "postgres://synapse:beepboop@localhost/hydra";
+	DATABASE_URL = "postgres://synapse:beepboop@localhost/plural_kitty";
 }

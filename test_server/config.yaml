@@ -14,4 +14,4 @@ bot:
     user: synapse
     password: beepboop
     host: localhost
-    database: hydra
+    database: plural_kitty

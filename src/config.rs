@@ -65,7 +65,7 @@ pub static CONFIG: Lazy<Config> = Lazy::new(|| {
     let config_path = match std::env::args().nth(1) {
         Some(p) => p,
         None => {
-            eprintln!("usage: hydra <path to config file>");
+            eprintln!("usage: plural-kitty <path to config file>");
             std::process::exit(1);
         }
     };
