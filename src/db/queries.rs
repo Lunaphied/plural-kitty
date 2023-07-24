@@ -45,6 +45,15 @@ pub async fn create_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
         .map(|_| ())
 }
 
+pub async fn remove_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
+    sqlx::query("DELETE FROM identities WHERE mxid = $1 AND name = $2;")
+        .bind(mxid)
+        .bind(name)
+        .execute(&*POOL)
+        .await
+        .map(|_| ())
+}
+
 pub async fn add_display_name(mxid: &str, name: &str, display_name: &str) -> sqlx::Result<()> {
     sqlx::query("UPDATE identities SET display_name = $3 WHERE mxid = $1 AND name = $2;")
         .bind(mxid)
@@ -55,11 +64,29 @@ pub async fn add_display_name(mxid: &str, name: &str, display_name: &str) -> sql
         .map(|_| ())
 }
 
+pub async fn remove_display_name(mxid: &str, name: &str) -> sqlx::Result<()> {
+    sqlx::query("UPDATE identities SET display_name = null WHERE mxid = $1 AND name = $2;")
+        .bind(mxid)
+        .bind(name)
+        .execute(&*POOL)
+        .await
+        .map(|_| ())
+}
+
 pub async fn add_avatar(mxid: &str, name: &str, avatar: &str) -> sqlx::Result<()> {
     sqlx::query("UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;")
         .bind(mxid)
         .bind(name)
         .bind(avatar)
+        .execute(&*POOL)
+        .await
+        .map(|_| ())
+}
+
+pub async fn remove_avatar(mxid: &str, name: &str) -> sqlx::Result<()> {
+    sqlx::query("UPDATE identities SET avatar = null WHERE mxid = $1 AND name = $2;")
+        .bind(mxid)
+        .bind(name)
         .execute(&*POOL)
         .await
         .map(|_| ())
@@ -110,24 +137,17 @@ pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
         .map(|res| res.rows_affected() > 0)
 }
 
-pub async fn get_identity(mxid: &str, name: &str) -> anyhow::Result<Identity> {
-    tracing::debug!("Getting {mxid} {name}");
-    let mut identity: Identity =
-        sqlx::query_as("SELECT * FROM identities WHERE mxid = $1 AND name = $2;")
-            .bind(mxid)
-            .bind(name)
-            .fetch_one(&*POOL)
-            .await
-            .context("Error getting identities")?;
-    identity.activators =
-        sqlx::query("SELECT value FROM activators WHERE mxid = $1 AND name = $2;")
-            .bind(mxid)
-            .bind(name)
-            .map(|row| row.get::<String, usize>(0))
-            .fetch_all(&*POOL)
-            .await
-            .context("Error getting activators")?;
-    Ok(identity)
+pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
+    sqlx::query_as(
+        "SELECT i.mxid, i.name, i.display_name,
+                           i.avatar, array_agg(a.value) as activators 
+                    FROM identities AS i LEFT JOIN activators AS a
+                    ON i.mxid = a.mxid AND i.name = a.name GROUP BY i.mxid, i.name;",
+    )
+    .bind(mxid)
+    .bind(name)
+    .fetch_one(&*POOL)
+    .await
 }
 
 pub async fn list_identities(mxid: &str) -> sqlx::Result<Vec<String>> {
@@ -147,6 +167,14 @@ pub async fn set_current_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
         .map(|_| ())
 }
 
+pub async fn clear_current_identity(mxid: &str) -> sqlx::Result<()> {
+    sqlx::query("UPDATE users SET current_ident = null WHERE mxid = $1;")
+        .bind(mxid)
+        .execute(&*POOL)
+        .await
+        .map(|_| ())
+}
+
 pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity>> {
     match sqlx::query("SELECT current_ident FROM users WHERE mxid = $1;")
         .bind(mxid)
@@ -155,7 +183,10 @@ pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity
         .await
         .context("Error getting current_ident")?
     {
-        Some(Some(name)) => get_identity(mxid, &name).await.map(Some),
+        Some(Some(name)) => get_identity(mxid, &name)
+            .await
+            .map(Some)
+            .map_err(|e| e.into()),
         _ => Ok(None),
     }
 }
