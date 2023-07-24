@@ -15,12 +15,15 @@ pub async fn read(room_id: &str, event_id: &str) -> sqlx::Result<bool> {
         .await?
         .is_some();
     if !read {
-        sqlx::query("INSERT INTO read_msgs(room_id, event_id) 
+        sqlx::query(
+            "INSERT INTO read_msgs(room_id, event_id) 
                      VALUES ($1, $2) ON CONFLICT (room_id) DO 
-                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1")
-            .bind(room_id)
-            .bind(event_id)
-            .execute(&*POOL).await?;
+                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1",
+        )
+        .bind(room_id)
+        .bind(event_id)
+        .execute(&*POOL)
+        .await?;
     }
     Ok(read)
 }
@@ -132,4 +135,17 @@ pub async fn set_current_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
         .execute(&*POOL)
         .await
         .map(|_| ())
+}
+
+pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity>> {
+    match sqlx::query("SELECT current_ident FROM users WHERE mxid = $1")
+        .bind(mxid)
+        .map(|row| row.get::<String, usize>(0))
+        .fetch_optional(&*POOL)
+        .await
+        .context("Error getting current_ident")?
+    {
+        Some(name) => get_identity(mxid, &name).await.map(Some),
+        None => Ok(None),
+    }
 }

@@ -28,15 +28,13 @@ database:
     host: db
     cp_min: 5
     cp_max: 10
-log_config: "/data/test.local.log.config"
+log_config: "/cfg/test.local.log.config"
 media_store_path: /data/media_store
 registration_shared_secret: "MU3-uk,z#AwTa@98;@fWljisyj6Q:6&QH,k7gEUT#3Gz3LCiT3"
 report_stats: true
 macaroon_secret_key: "Giy08anZ38T9VC8nePfH=,_irB.bL#C-^*=6MV=2Za:1:1bo,#"
 form_secret: "&V&VBPKehd;#..GfNSgYmhW:f4gGAAJa*wn2*RehZXGZJWOXfn"
 signing_key_path: "/data/test.local.signing.key"
-trusted_key_servers:
-  - server_name: "matrix.org"
 
 enable_registration: true
 enable_registration_without_verification: true

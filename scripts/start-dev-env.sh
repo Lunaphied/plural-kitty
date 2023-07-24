@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh -e
 
 podman-compose up -d
 mkdir -p /tmp/nginx-dev

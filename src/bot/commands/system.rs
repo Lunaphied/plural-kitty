@@ -19,7 +19,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
             .context(format!("Error getting info for member {member}"))?;
         msg += &format!(
             "- {} (`{}`)",
-            info.display_name.as_ref().unwrap_or_else(|| &info.name),
+            info.display_name.as_ref().unwrap_or(&info.name),
             info.activators.join(","),
         );
     }

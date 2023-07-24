@@ -7,7 +7,7 @@ synapse:
     host: localhost
     database: synapse
 bot:
-  user: '@relay:test.local'
+  user: '@pk:test.local'
   homeserver_url: http://127.0.0.1:8008
   state_store: ./test_server/data/state_store
   db:

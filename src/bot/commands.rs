@@ -60,7 +60,7 @@ pub async fn dm_handler(
         };
         match &event.content.msgtype {
             MessageType::Text(message_content) => {
-                let mut cmd = Cmd::parse(&message_content)?;
+                let mut cmd = Cmd::parse(message_content)?;
                 tracing::debug!("{cmd:?}");
                 if let Some(CmdPart::Word(word)) = cmd.pop() {
                     if word.starts_with('!') {
