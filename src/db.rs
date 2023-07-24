@@ -1,12 +1,12 @@
+use sqlx::postgres::PgPoolOptions;
 use sqlx::Pool;
 use sqlx::Postgres;
-use sqlx::postgres::PgPoolOptions;
 
 use crate::config::CONFIG;
 use crate::late_init::LateInit;
 
-pub mod queries;
 pub mod models;
+pub mod queries;
 
 static POOL: LateInit<Pool<Postgres>> = LateInit::new();
 
@@ -18,4 +18,3 @@ pub async fn init() -> anyhow::Result<()> {
     POOL.init(pool);
     Ok(())
 }
-

@@ -1,6 +1,8 @@
 use once_cell::sync::OnceCell;
 
-pub struct LateInit<T> { cell: OnceCell<T> }
+pub struct LateInit<T> {
+    cell: OnceCell<T>,
+}
 
 impl<T> LateInit<T> {
     pub fn init(&self, value: T) {
@@ -8,7 +10,9 @@ impl<T> LateInit<T> {
     }
 
     pub const fn new() -> Self {
-        LateInit { cell: OnceCell::new() }
+        LateInit {
+            cell: OnceCell::new(),
+        }
     }
 }
 

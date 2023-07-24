@@ -2,9 +2,10 @@ use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Context;
 use matrix_sdk::room::Joined;
-use matrix_sdk::ruma::events::room::message::{
-    OriginalSyncRoomMessageEvent, RoomMessageEventContent,
-};
+use matrix_sdk::ruma::api::client::media::create_content;
+use matrix_sdk::ruma::events::room::message::{MessageType, Relation, OriginalSyncRoomMessageEvent, RoomMessageEventContent};
+use matrix_sdk::ruma::events::room::MediaSource;
+use matrix_sdk::ruma::events::{AnyMessageLikeEvent, AnyTimelineEvent, MessageLikeEvent, OriginalMessageLikeEvent};
 use matrix_sdk::ruma::UserId;
 
 use crate::bot::parser::Cmd;
@@ -29,6 +30,7 @@ pub async fn exec(
         match sub_command.as_str() {
             "displayname" | "dn" => add_display_name(cmd, room, user, &name).await?,
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
+            "avatar" | "av" => add_avatar(room, user, &name, &event).await?,
             "show" => show_identity(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
@@ -64,6 +66,54 @@ async fn add_display_name(
         None,
     )
     .await?;
+    Ok(())
+}
+
+async fn add_avatar(
+    room: &Joined,
+    user: &UserId,
+    name: &str,
+    event: &OriginalSyncRoomMessageEvent,
+) -> anyhow::Result<()> {
+    if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
+        let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
+            MessageLikeEvent::Original(OriginalMessageLikeEvent { 
+                content: RoomMessageEventContent { msgtype: MessageType::Image(image_event), .. }, .. 
+            }),
+        )) = room
+            .event(&in_reply_to.event_id)
+            .await
+            .context("Error getting image event")?
+            .event
+            .deserialize()
+            .context("Error deserializing image event")? else 
+        {
+            bail!("`!member [member] avatar must be sent in reply to an image");
+        };
+        let media_mxc = match image_event.source {
+            MediaSource::Plain(mxc) => mxc,
+            MediaSource::Encrypted(_) => {
+                // Reupload encrypted images unencrypted
+                let image = room
+                    .client()
+                    .media()
+                    .get_file(image_event.clone(), false)
+                    .await
+                    .context("Error getting encrypted image")?
+                    .ok_or_else(|| {
+                        anyhow!("The message this command is replying to has not image file")
+                    })?;
+                let mut upload_req = create_content::v3::Request::new(image);
+                if let Some(info) = image_event.info {
+                    upload_req.content_type = info.mimetype;
+                }
+                room.client().send(upload_req, None).await?.content_uri
+            }
+        };
+        queries::add_avatar(user.as_str(), name, media_mxc.as_str()).await?;
+    } else {
+        bail!("`!member [member] avatar must be sent in reply to an image");
+    }
     Ok(())
 }
 
