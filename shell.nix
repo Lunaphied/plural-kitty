@@ -13,7 +13,6 @@ pkgs.mkShell rec {
 		nginx
 		postgresql_12
 		sqlx-cli
-		jq
   ];
   RUSTC_VERSION = pkgs.lib.readFile ./rust-toolchain;
   # https://github.com/rust-lang/rust-bindgen#environment-variables

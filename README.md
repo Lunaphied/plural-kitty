@@ -15,11 +15,27 @@ Requirements:
 
 - Nix
 
+Or:
+
+- Rust 1.70 or newer
+- podman
+- podman-compose
+- pkg-config
+- Openssl
+- Sqlite
+- Nginx
+- Postgresql 12 or newer
+- (Optional) [sqlx-cli](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli)
+
 Set up:
 
 - Run `nix-shell` in this directory to install all of the needed programs.
 - Run `./scripts/start-dev-env.sh` to start start postgres, synapse, and nginx.
-- Run `cargo run` to run the proxy.
+- Run `./scripts/setup.sh` to create the development users
+- Run `cargo run ./test_server/config.yaml` to run the proxy.
+- You will be prompted for the pk account password, it is `kitty`.
 - Connect to the test home server at `http://localhost:8000` with the client of your choice
+- You can log in as `@test:test.local` with the password `test`.
 
-Ports `8000`, `8008`, `4000`, and `5432` will be used by default, make sure they're available on your system
+Ports `8000`, `8008`, `4000`, and `5432` will be used by default,
+make sure they're available on your system
