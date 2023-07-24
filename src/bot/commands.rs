@@ -14,7 +14,7 @@ use matrix_sdk::ruma::events::room::message::{
     MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent,
 };
 use matrix_sdk::ruma::OwnedEventId;
-use matrix_sdk::Client;
+use matrix_sdk::{Client, RoomMemberships};
 
 use crate::bot::parser::{Cmd, CmdPart};
 use crate::db::queries;
@@ -37,7 +37,8 @@ pub async fn dm_handler(
     if let Room::Joined(room) = room {
         // Only respond to DMs
         tracing::debug!("Processing event {}", event.event_id);
-        if !room.is_direct().await? {
+        let members = room.members(RoomMemberships::JOIN).await?;
+        if members.len() != 2 {
             tracing::debug!("Ignoring non-DM message");
             return Ok(());
         }
