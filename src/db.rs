@@ -15,6 +15,7 @@ pub async fn init() -> anyhow::Result<()> {
         .max_connections(5)
         .connect(&CONFIG.bot.db.db_uri())
         .await?;
+    sqlx::migrate!().run(&pool).await?;
     POOL.init(pool);
     Ok(())
 }
