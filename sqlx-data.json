@@ -1,3 +1,361 @@
 {
-  "db": "PostgreSQL"
+  "db": "PostgreSQL",
+  "0826db2c7d44296fa13f3255fd24736456cf5e95d35503cba0d63e62f132419e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "bool",
+          "ordinal": 0,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT true FROM read_msgs WHERE room_id = $1 AND event_id = $2"
+  },
+  "1f3385378e98c94be47c83fff6c7dccfa4abbee6e261dd6109c929d08fbdfea3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT name FROM identities WHERE mxid = $1;"
+  },
+  "201cc042f1d9e53d73aef1027b7f08aabffabb77092d4044bea247fa58b4bfa5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE users SET current_ident = $2 WHERE mxid = $1;"
+  },
+  "271673a3ba3aeac60d4877ecac8c2e3ae868f2bb1a37f60ef66b6706b64fd617": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "value",
+          "ordinal": 1,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT name, value FROM activators WHERE mxid = $1;"
+  },
+  "278e5098ab2c685f58445dfd816f5ebe5182924940618b28c27c004efeca07ac": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE users SET current_ident = null WHERE mxid = $1;"
+  },
+  "31a22d83d99c03d00199314f4465c67ddf130edcb785614ca963e5344fa04c88": {
+    "describe": {
+      "columns": [
+        {
+          "name": "x",
+          "ordinal": 0,
+          "type_info": "Int4"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT 1 as x FROM identities WHERE mxid = $1 AND name = $2;"
+  },
+  "3ae5412250f542f44aec0c6f517cebd796b7b291d1146ad1fbed09f44b477125": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT name FROM activators WHERE mxid = $1 AND value = $2"
+  },
+  "3ca5130e29d7d7d1e2f0b7b844f4fc8079088e87063a2648f7dc7cc4cbc5cbf6": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM identities WHERE mxid = $1 AND name = $2;"
+  },
+  "48413dd36ae666560276076dc5d056e1005de0b4bc80f0aff1cc86534133e1ad": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE identities SET display_name = $3 WHERE mxid = $1 AND name = $2;"
+  },
+  "5ee9592086809e13e52630235c0d61cc98bdf26cdbdbe4c8d1ef90bdab6a0b31": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO identities (mxid, name) VALUES ($1, $2);"
+  },
+  "643a51b3ddae46927ee2c81d3c152c790460511efb1218a7fc2584083e064722": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE identities SET display_name = null WHERE mxid = $1 AND name = $2;"
+  },
+  "6b4766b070a49a70462e86a861a01ec92974cf51ed7c6536f09fa6d77d0b9eb4": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;"
+  },
+  "720606d30eb629102ea6b8642293527f6750e7052c4175eeaa1cb7637f25fe5f": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mxid",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "activators!",
+          "ordinal": 4,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT i.mxid, i.name, i.display_name, i.avatar,\n            COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as \"activators!\" \n         FROM identities AS i LEFT JOIN activators AS a\n         ON i.mxid = a.mxid AND i.name = a.name \n         WHERE i.mxid = $1 AND i.name = $2\n         GROUP BY i.mxid, i.name;"
+  },
+  "965bf74224a06b1438f37b0200953676b8dee2026864b435537b2b355173154c": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE identities SET avatar = null WHERE mxid = $1 AND name = $2;"
+  },
+  "a0318bbd96ffc851ce7d668475b9aafe83972382e6ecfea380fbc98d6534d7d3": {
+    "describe": {
+      "columns": [
+        {
+          "name": "current_ident",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT current_ident FROM users WHERE mxid = $1;"
+  },
+  "b47a3281b2e9a170be27b5d2df5edcc3a229cf32368cc601d742b9af2dab7291": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO read_msgs(room_id, event_id) \n                     VALUES ($1, $2) ON CONFLICT (room_id) DO \n                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1"
+  },
+  "c71e4d216ef5ce37634465b4552c8b5bf1cb04d7e4adbfc331f47a23507a2f69": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE users SET current_ident = null WHERE mxid = $1 AND current_ident = $2;"
+  },
+  "ca3b4e79cc19ce61bf191b92571dede4bf22514e8493fda3d8074d671d39d97d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM activators WHERE mxid = $1 AND name = $2 AND value = $3;"
+  },
+  "d76d45b4beeda623ae55eff4a68ce320a7741a5b5a1851508a3ce5c2d8eedc23": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO users (mxid) VALUES ($1) ON CONFLICT DO NOTHING;"
+  },
+  "ef58092cb1baea0d22c9dd60eba109705273c222526d0e97ce140ab46417b238": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM activators WHERE mxid = $1 AND name = $2;"
+  },
+  "ff6c074fbf52ed338088fd9f324589ef093fc74929963372b8abff09256a80b9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO activators (mxid, name, value) VALUES ($1, $2, $3);"
+  }
 }

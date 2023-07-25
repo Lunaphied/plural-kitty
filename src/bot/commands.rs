@@ -6,9 +6,7 @@ use std::future::Future;
 
 use anyhow::Context;
 use matrix_sdk::room::{Joined, Receipts, Room};
-use matrix_sdk::ruma::api::client::receipt::create_receipt::v3::ReceiptType as ReactType;
 use matrix_sdk::ruma::events::reaction::ReactionEventContent;
-use matrix_sdk::ruma::events::receipt::ReceiptThread;
 use matrix_sdk::ruma::events::relation::Annotation;
 use matrix_sdk::ruma::events::room::message::{
     MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent,
@@ -203,17 +201,6 @@ impl Handler {
     }
 
     async fn run_no_feddback(self, f: impl Future<Output = anyhow::Result<ErrList>>) {
-        if let Err(e) = self
-            .room
-            .send_single_receipt(
-                ReactType::Read,
-                ReceiptThread::Unthreaded,
-                self.cmd_event_id,
-            )
-            .await
-        {
-            tracing::error!("Error posting read  receipt: {e:#}");
-        }
         if let Err(e) = f.await {
             tracing::error!("Error in command handler: {e:#}");
         }

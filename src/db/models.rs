@@ -4,7 +4,6 @@ pub struct Identity {
     pub name: String,
     pub display_name: Option<String>,
     pub avatar: Option<String>,
-    #[sqlx(default)]
     pub activators: Vec<String>,
 }
 

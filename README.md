@@ -25,7 +25,7 @@ Or:
 - Sqlite
 - Nginx
 - Postgresql 12 or newer
-- (Optional) [sqlx-cli](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli)
+- [sqlx-cli](https://github.com/launchbadge/sqlx/tree/main/sqlx-cli)
 
 Set up:
 
