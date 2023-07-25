@@ -19,10 +19,44 @@ use crate::db::queries;
 
 pub type ErrList = Vec<anyhow::Error>;
 
-const HELP: &str = "
+const HELP: &str = r#"
 # Plural Kitty Help
-...
-";
+
+Plural Kitty is a tool that allows users to manage and switch plural identies on Matrix,
+similar to Plural Kit for Discord.
+
+- To start using Plural Kitty create a system member: `!member new [member name]`
+- You can set a display name like this: `!member [member name] displayname [name]` 
+or !m [member name] dn [display name]`.
+- You can set an avatar like this: send `!member [member name] avatar [name]` 
+or !m [member name] av [display name]` in response to the avatar image.
+- `!system` or `!s` to view a list of system members.
+- You can set clear a display name like this: `!member [member name] displayname !clear` 
+or !m [member name] dn [display name]`.
+- You can clear an avatar like this: send `!member [member name] avatar !clear` 
+or !m [member name] av !clear`.
+- You can remove a member like this; `!member [member name] remove`.
+- To show this help message type `!help`
+
+To switch to a member you must also set one or more activators for that member. Activators are
+short text strings that you can type in this DM to switch to the corrisonding member.
+
+- You can add an activator like this: `!member [member name] activator add [activator string]` or
+`!m [name] act add [activator string]`
+- You can remove an activator like this: `!member [member name] activator remove [activator string]` or
+`!m [name] act rm [activator string]`
+
+## Example of setting up a member:
+
+```
+!m new sasha
+!m sasha dn Sashanoraa (ze/zir)
+<post an image in this DM>
+!m sasha av     (this mesage is in reply to the image posted above)
+!m sasha act add s
+s               (switch to member sasha)
+```
+"#;
 
 pub async fn dm_handler(
     event: OriginalSyncRoomMessageEvent,
