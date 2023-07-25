@@ -2,6 +2,8 @@ use std::fs::File;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
+use anyhow::bail;
+use anyhow::Context;
 use matrix_sdk::ruma::OwnedUserId;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -47,17 +49,25 @@ pub struct SynapseInfo {
 #[derive(Deserialize)]
 pub struct DbInfo {
     user: String,
-    password: String,
+    password: Option<String>,
+    password_file: Option<PathBuf>,
     host: String,
     database: String,
 }
 
 impl DbInfo {
-    pub fn db_uri(&self) -> String {
-        format!(
+    pub async fn db_uri(&self) -> anyhow::Result<String> {
+        let password = match (&self.password, &self.password_file) {
+            (Some(pass), _) => pass.clone(),
+            (None, Some(path)) => tokio::fs::read_to_string(path)
+                .await
+                .context("Error reading password_file")?,
+            _ => bail!("Either password or password_file must be set for each database"),
+        };
+        Ok(format!(
             "postgres://{}:{}@{}/{}",
-            self.user, self.password, self.host, self.database
-        )
+            self.user, password, self.host, self.database
+        ))
     }
 }
 

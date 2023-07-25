@@ -13,7 +13,7 @@ static POOL: LateInit<Pool<Postgres>> = LateInit::new();
 pub async fn init() -> anyhow::Result<()> {
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&CONFIG.bot.db.db_uri())
+        .connect(&CONFIG.bot.db.db_uri().await?)
         .await?;
     sqlx::migrate!().run(&pool).await?;
     POOL.init(pool);

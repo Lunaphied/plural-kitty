@@ -25,7 +25,7 @@ pub async fn init() -> anyhow::Result<()> {
     let client = Client::new();
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&CONFIG.synapse.db.db_uri())
+        .connect(&CONFIG.synapse.db.db_uri().await?)
         .await?;
 
     let app = Router::new()
