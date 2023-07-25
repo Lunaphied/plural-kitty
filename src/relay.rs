@@ -23,12 +23,12 @@ type Client = hyper::client::Client<HttpConnector, Body>;
 
 pub async fn init() -> anyhow::Result<()> {
     let client = Client::new();
-    let db_uri = CONFIG.synapse.db.db_uri().await?;
+    let db_opts = CONFIG.synapse.db.db_con_opts().await?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
-        .connect(&db_uri)
+        .connect_with(db_opts.clone())
         .await
-        .context(format!("Error connection to DB at `{db_uri}`"))?;
+        .context(format!("Error connection to DB at `{db_opts:?}`"))?;
 
     let app = Router::new()
         .route(

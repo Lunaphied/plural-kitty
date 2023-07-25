@@ -6,6 +6,7 @@ use anyhow::Context;
 use matrix_sdk::ruma::OwnedUserId;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
+use sqlx::postgres::PgConnectOptions;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -55,25 +56,20 @@ pub struct DbInfo {
 }
 
 impl DbInfo {
-    pub async fn db_uri(&self) -> anyhow::Result<String> {
+    pub async fn db_con_opts(&self) -> anyhow::Result<PgConnectOptions> {
+        let opts = PgConnectOptions::new()
+            .host(&self.host)
+            .database(&self.database)
+            .username(&self.user);
         match (&self.password, &self.password_file) {
-            (Some(pass), _) => Ok(format!(
-                "postgres://{}:{}@{}/{}",
-                self.user, pass, self.host, self.database
-            )),
+            (Some(pass), _) => Ok(opts.password(pass)),
             (None, Some(path)) => {
                 let pass = tokio::fs::read_to_string(path)
                     .await
                     .context("Error reading password_file")?;
-                Ok(format!(
-                    "postgres://{}:{}@{}/{}",
-                    self.user, pass, self.host, self.database
-                ))
+                Ok(opts.password(&pass))
             }
-            _ => Ok(format!(
-                "postgres://{}@{}/{}",
-                self.user, self.host, self.database
-            )),
+            _ => Ok(opts),
         }
     }
 }
