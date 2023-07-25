@@ -2,8 +2,7 @@
 
 use anyhow::Context;
 
-use super::models::ActivatorInfo;
-use super::models::Identity;
+use super::models::{ActivatorInfo, Identity};
 use super::POOL;
 
 pub async fn read(room_id: &str, event_id: &str) -> sqlx::Result<bool> {
@@ -180,11 +179,11 @@ pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
     sqlx::query_as!(
         Identity,
         r#"SELECT i.mxid, i.name, i.display_name, i.avatar,
-            COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as "activators!" 
-         FROM identities AS i LEFT JOIN activators AS a
-         ON i.mxid = a.mxid AND i.name = a.name 
-         WHERE i.mxid = $1 AND i.name = $2
-         GROUP BY i.mxid, i.name;"#,
+             COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as "activators!" 
+           FROM identities AS i LEFT JOIN activators AS a
+           ON i.mxid = a.mxid AND i.name = a.name 
+           WHERE i.mxid = $1 AND i.name = $2
+           GROUP BY i.mxid, i.name;"#,
         mxid,
         name
     )
