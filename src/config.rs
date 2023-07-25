@@ -2,7 +2,6 @@ use std::fs::File;
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use anyhow::bail;
 use anyhow::Context;
 use matrix_sdk::ruma::OwnedUserId;
 use once_cell::sync::Lazy;
@@ -57,17 +56,25 @@ pub struct DbInfo {
 
 impl DbInfo {
     pub async fn db_uri(&self) -> anyhow::Result<String> {
-        let password = match (&self.password, &self.password_file) {
-            (Some(pass), _) => pass.clone(),
-            (None, Some(path)) => tokio::fs::read_to_string(path)
-                .await
-                .context("Error reading password_file")?,
-            _ => bail!("Either password or password_file must be set for each database"),
-        };
-        Ok(format!(
-            "postgres://{}:{}@{}/{}",
-            self.user, password, self.host, self.database
-        ))
+        match (&self.password, &self.password_file) {
+            (Some(pass), _) => Ok(format!(
+                "postgres://{}:{}@{}/{}",
+                self.user, pass, self.host, self.database
+            )),
+            (None, Some(path)) => {
+                let pass = tokio::fs::read_to_string(path)
+                    .await
+                    .context("Error reading password_file")?;
+                Ok(format!(
+                    "postgres://{}:{}@{}/{}",
+                    self.user, pass, self.host, self.database
+                ))
+            }
+            _ => Ok(format!(
+                "postgres://{}@{}/{}",
+                self.user, self.host, self.database
+            )),
+        }
     }
 }
 
