@@ -16,6 +16,16 @@ in
         			'';
     };
 
+    user = lib.mkOption {
+      type = lib.types.str;
+      default = "plural-kitty";
+    };
+
+    group = lib.mkOption {
+      type = lib.types.str;
+      default = "plural-kitty";
+    };
+
     logString = lib.mkOption {
       type = lib.types.str;
       default = "warn,plural_kitty=info";
@@ -42,17 +52,19 @@ in
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "comfig.yaml" cfg.settings}";
         Restart = "always";
-        User = "plural-kitty";
-        Group = "plural-kitty";
+        User = cfg.user;
+        Group = cfg.group;
       };
     };
     environment.systemPackages = [ cfg.package ];
-    users = {
-      users."plural-kitty" = {
+    users.users = lib.optionalAttrs (cfg.user == "plural-kitty") {
+      "plural-kitty" = {
         group = "plural-kitty";
         isSystemUser = true;
       };
-      groups."plural-kitty" = { };
+    };
+    users.groups = lib.optionalAttrs (cfg.group == "plural-kitty") {
+      "plural-kitty" = { };
     };
   };
 }

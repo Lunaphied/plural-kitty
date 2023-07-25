@@ -12,7 +12,7 @@
       rec {
         packages = rec {
           plural-kitty = pkgs.rustPlatform.buildRustPackage rec {
-            pname = name;
+            pname = "plural-kitty";
             version = "0.1.0";
             src = ./.;
             nativeBuildInputs = with pkgs; [ git binutils ];
