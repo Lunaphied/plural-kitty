@@ -15,7 +15,8 @@
             pname = "plural-kitty";
             version = "0.1.0";
             src = ./.;
-            nativeBuildInputs = with pkgs; [ git binutils ];
+            nativeBuildInputs = with pkgs; [ git binutils pkg-config ];
+						buildInputs = with pkgs; [ openssl sqlite ];
             cargoLock = {
               lockFile = "${src}/Cargo.lock";
               allowBuiltinFetchGit = true;
