@@ -201,7 +201,7 @@
     },
     "query": "UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;"
   },
-  "720606d30eb629102ea6b8642293527f6750e7052c4175eeaa1cb7637f25fe5f": {
+  "825eba0c94020509eabdf34d81d9eb4c0cbd6f5eb2111d2d93ec47f3d43285d6": {
     "describe": {
       "columns": [
         {
@@ -244,7 +244,7 @@
         ]
       }
     },
-    "query": "SELECT i.mxid, i.name, i.display_name, i.avatar,\n            COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as \"activators!\" \n         FROM identities AS i LEFT JOIN activators AS a\n         ON i.mxid = a.mxid AND i.name = a.name \n         WHERE i.mxid = $1 AND i.name = $2\n         GROUP BY i.mxid, i.name;"
+    "query": "SELECT i.mxid, i.name, i.display_name, i.avatar,\n             COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as \"activators!\" \n           FROM identities AS i LEFT JOIN activators AS a\n           ON i.mxid = a.mxid AND i.name = a.name \n           WHERE i.mxid = $1 AND i.name = $2\n           GROUP BY i.mxid, i.name;"
   },
   "965bf74224a06b1438f37b0200953676b8dee2026864b435537b2b355173154c": {
     "describe": {
