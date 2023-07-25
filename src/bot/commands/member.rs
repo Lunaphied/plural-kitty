@@ -191,7 +191,7 @@ async fn activator_cmd(
                 .await
                 .context("Error adding activator")?;
             let msg = format!("Added activator `{}` to {}", activator, name);
-            room.send(RoomMessageEventContent::notice_markdown(msg), None)
+            room.send(RoomMessageEventContent::text_markdown(msg), None)
                 .await
                 .context("Error sending reply")?;
         }
@@ -203,7 +203,7 @@ async fn activator_cmd(
             })?;
             queries::remove_activator(user.as_str(), name, &activator).await?;
             let msg = format!("Removed activator `{}` from {}", activator, name);
-            room.send(RoomMessageEventContent::notice_markdown(msg), None)
+            room.send(RoomMessageEventContent::text_markdown(msg), None)
                 .await
                 .context("Error sending reply")?;
         }

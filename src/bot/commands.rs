@@ -73,7 +73,7 @@ pub async fn dm_handler(
                             }
                             "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                             _ => {
-                                let content = RoomMessageEventContent::notice_markdown(
+                                let content = RoomMessageEventContent::text_markdown(
                                 "Unknown command. Type `!help` for for a list command and what they do.",
                             );
                                 room.send(content, None).await?;
@@ -88,7 +88,7 @@ pub async fn dm_handler(
                             .await
                             .context("Error setting current member")?;
                         room.send(
-                            RoomMessageEventContent::notice_markdown(format!(
+                            RoomMessageEventContent::text_markdown(format!(
                                 "Set current fronter to {member_name}"
                             )),
                             None,
@@ -96,7 +96,7 @@ pub async fn dm_handler(
                         .await?;
                     } else {
                         let msg = format!("Unknown command or activator\n\n{HELP}");
-                        room.send(RoomMessageEventContent::notice_markdown(msg), None)
+                        room.send(RoomMessageEventContent::text_markdown(msg), None)
                             .await?;
                     }
                 }
@@ -150,7 +150,7 @@ impl Handler {
                     }
                     for e in errors {
                         tracing::error!("Error in command handler: {e:?}");
-                        let content = RoomMessageEventContent::notice_plain(format!("{e:?}"));
+                        let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
                         if let Err(e) = self.room.send(content, None).await {
                             tracing::error!("Error sending error message: {e}");
                         }
@@ -164,7 +164,7 @@ impl Handler {
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error reaction: {e}");
                 }
-                let content = RoomMessageEventContent::notice_plain(format!("{e:?}"));
+                let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error message: {e}");
                 }
@@ -185,7 +185,7 @@ impl Handler {
                     }
                     for e in errors {
                         tracing::error!("Error in command handler: {e:?}");
-                        let content = RoomMessageEventContent::notice_plain(format!("{e:?}"));
+                        let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
                         if let Err(e) = self.room.send(content, None).await {
                             tracing::error!("Error sending error message: {e}");
                         }
@@ -194,7 +194,7 @@ impl Handler {
             }
             Err(e) => {
                 tracing::error!("Error in command handler: {e:?}");
-                let content = RoomMessageEventContent::notice_plain(format!("{e:?}"));
+                let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error message: {e}");
                 }
@@ -305,7 +305,7 @@ pub async fn help(mut cmd: Cmd, room: &Joined) -> anyhow::Result<ErrList> {
     let message = match word.as_deref() {
         _ => HELP,
     };
-    let content = RoomMessageEventContent::notice_markdown(message);
+    let content = RoomMessageEventContent::text_markdown(message);
     room.send(content, None).await?;
     Ok(vec![])
 }

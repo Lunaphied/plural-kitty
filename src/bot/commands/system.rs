@@ -23,7 +23,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
             info.activators.join(","),
         );
     }
-    room.send(RoomMessageEventContent::notice_markdown(msg), None)
+    room.send(RoomMessageEventContent::text_markdown(msg), None)
         .await
         .context("Error sending reply")?;
     Ok(vec![])
