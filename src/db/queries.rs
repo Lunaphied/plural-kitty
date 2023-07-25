@@ -50,6 +50,16 @@ pub async fn remove_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
         .bind(mxid)
         .bind(name)
         .execute(&*POOL)
+        .await?;
+    sqlx::query("DELETE FROM activators WHERE mxid = $1 AND name = $2;")
+        .bind(mxid)
+        .bind(name)
+        .execute(&*POOL)
+        .await?;
+    sqlx::query("UPDATE users SET current_ident = null WHERE mxid = $1 AND current_ident = $2;")
+        .bind(mxid)
+        .bind(name)
+        .execute(&*POOL)
         .await
         .map(|_| ())
 }
@@ -118,8 +128,8 @@ pub async fn add_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Res
         .map(|_| ())
 }
 
-pub async fn create_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
-    sqlx::query("INSERT INTO activators (mxid, name, value) VALUES ($1, $2, $3);")
+pub async fn remove_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
+    sqlx::query("DELETE FROM activators WHERE mxid = $1 AND name = $2 AND value = $3;")
         .bind(mxid)
         .bind(name)
         .bind(activator)

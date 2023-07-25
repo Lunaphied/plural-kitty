@@ -3,9 +3,13 @@ use anyhow::bail;
 use anyhow::Context;
 use matrix_sdk::room::Joined;
 use matrix_sdk::ruma::api::client::media::create_content;
-use matrix_sdk::ruma::events::room::message::{MessageType, Relation, OriginalSyncRoomMessageEvent, RoomMessageEventContent};
+use matrix_sdk::ruma::events::room::message::{
+    MessageType, OriginalSyncRoomMessageEvent, Relation, RoomMessageEventContent,
+};
 use matrix_sdk::ruma::events::room::MediaSource;
-use matrix_sdk::ruma::events::{AnyMessageLikeEvent, AnyTimelineEvent, MessageLikeEvent, OriginalMessageLikeEvent};
+use matrix_sdk::ruma::events::{
+    AnyMessageLikeEvent, AnyTimelineEvent, MessageLikeEvent, OriginalMessageLikeEvent,
+};
 use matrix_sdk::ruma::UserId;
 
 use crate::bot::parser::Cmd;
@@ -30,8 +34,9 @@ pub async fn exec(
         match sub_command.as_str() {
             "displayname" | "dn" => add_display_name(cmd, room, user, &name).await?,
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
-            "avatar" | "av" => add_avatar(room, user, &name, &event).await?,
+            "avatar" | "av" => add_avatar(cmd, room, user, &name, &event).await?,
             "show" => show_identity(room, user, &name).await?,
+            "remove" => remove_ident(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
     }
@@ -50,6 +55,16 @@ async fn new_ident(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result
     Ok(())
 }
 
+async fn remove_ident(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+    queries::remove_identity(user.as_str(), &name).await?;
+    room.send(
+        RoomMessageEventContent::text_markdown(format!("Removed idenity `{name}`")),
+        None,
+    )
+    .await?;
+    Ok(())
+}
+
 async fn add_display_name(
     cmd: Cmd,
     room: &Joined,
@@ -60,21 +75,40 @@ async fn add_display_name(
     if display_name.is_empty() {
         bail!("Giv name plz");
     }
-    queries::add_display_name(user.as_str(), name, &display_name).await?;
-    room.send(
-        RoomMessageEventContent::text_markdown(format!("Set display name to `{display_name}`")),
-        None,
-    )
-    .await?;
+    if display_name.as_str() == "!clear" {
+        queries::remove_display_name(user.as_str(), name).await?;
+        room.send(
+            RoomMessageEventContent::text_markdown(format!("Cleared display name")),
+            None,
+        )
+        .await?;
+    } else {
+        queries::add_display_name(user.as_str(), name, &display_name).await?;
+        room.send(
+            RoomMessageEventContent::text_markdown(format!("Set display name to `{display_name}`")),
+            None,
+        )
+        .await?;
+    }
     Ok(())
 }
 
 async fn add_avatar(
+    mut cmd: Cmd,
     room: &Joined,
     user: &UserId,
     name: &str,
     event: &OriginalSyncRoomMessageEvent,
 ) -> anyhow::Result<()> {
+    if let Some(word) = cmd.pop_word() {
+        if word.as_str() == "!clear" {
+            queries::remove_avatar(user.as_str(), name).await?;
+            return Ok(());
+        } else if word.starts_with("mxc://") {
+            queries::add_avatar(user.as_str(), name, &word).await?;
+            return Ok(());
+        }
+    }
     if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
             MessageLikeEvent::Original(OriginalMessageLikeEvent { 
@@ -157,6 +191,18 @@ async fn activator_cmd(
                 .await
                 .context("Error adding activator")?;
             let msg = format!("Added activator `{}` to {}", activator, name);
+            room.send(RoomMessageEventContent::notice_markdown(msg), None)
+                .await
+                .context("Error sending reply")?;
+        }
+        "remove" | "rm" => {
+            let activator = cmd.pop_word().ok_or_else(|| {
+                anyhow!(
+                    "!member [member] activator remove needs the activation sequence as an arquement"
+                )
+            })?;
+            queries::remove_activator(user.as_str(), name, &activator).await?;
+            let msg = format!("Removed activator `{}` from {}", activator, name);
             room.send(RoomMessageEventContent::notice_markdown(msg), None)
                 .await
                 .context("Error sending reply")?;
