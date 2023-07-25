@@ -18,9 +18,10 @@
             nativeBuildInputs = with pkgs; [ git binutils ];
             cargoLock = {
               lockFile = "${src}/Cargo.lock";
+              allowBuiltinFetchGit = true;
             };
           };
-					default = plural-kitty;
+          default = plural-kitty;
         };
 
         nixosModules = rec {
