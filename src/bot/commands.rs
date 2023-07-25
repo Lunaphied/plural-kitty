@@ -27,19 +27,19 @@ similar to Plural Kit for Discord.
 
 - To start using Plural Kitty create a system member: `!member new [member name]`
 - You can set a display name like this: `!member [member name] displayname [name]` 
-or !m [member name] dn [display name]`.
+or `!m [member name] dn [display name]`.
 - You can set an avatar like this: send `!member [member name] avatar [name]` 
-or !m [member name] av [display name]` in response to the avatar image.
+or `!m [member name] av [display name]` in response to the avatar image.
 - `!system` or `!s` to view a list of system members.
 - You can set clear a display name like this: `!member [member name] displayname !clear` 
-or !m [member name] dn [display name]`.
+or `!m [member name] dn [display name]`.
 - You can clear an avatar like this: send `!member [member name] avatar !clear` 
-or !m [member name] av !clear`.
+or `!m [member name] av !clear`.
 - You can remove a member like this; `!member [member name] remove`.
 - To show this help message type `!help`
 
 To switch to a member you must also set one or more activators for that member. Activators are
-short text strings that you can type in this DM to switch to the corrisonding member.
+short text strings that you can type in this DM to switch to the corresponding member.
 
 - You can add an activator like this: `!member [member name] activator add [activator string]` or
 `!m [name] act add [activator string]`
