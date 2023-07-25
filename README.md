@@ -3,11 +3,11 @@
 A WIP tool that allows plural users to switch aliases without breaking e2ee or
 generating a lot of extra events.
 
-The proxy works by sitting in front of synapses message send endpoint. When a plural user
+Plural Kitty works by sitting in front of Synapses message send endpoint. When a plural user
 sends a message, the proxy will check if they have the correct name and avatar in that room,
 and if they do not, the proxy will set it before the message send is forwarded to synapse.
 
-We concertize that there will be a bot users DM to set up their profiles and control the proxy.
+Plural Kitty also has a bot that users DM to set up and change members.
 
 ## Devel setup
 
