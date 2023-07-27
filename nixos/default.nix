@@ -52,6 +52,7 @@ in
       serviceConfig = {
         ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "comfig.yaml" cfg.settings}";
         Restart = "always";
+				RestartSec = 5;
         User = cfg.user;
         Group = cfg.group;
       };
