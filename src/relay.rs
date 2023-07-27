@@ -32,7 +32,7 @@ pub async fn init() -> anyhow::Result<()> {
 
     let app = Router::new()
         .route(
-            "/_matrix/client/r0/rooms/:room_id/send/:event_type/:txn_id",
+            "/_matrix/client/:version/rooms/:room_id/send/:event_type/:txn_id",
             put(msg_send_handler).options(passthrough_handler),
         )
         .fallback(passthrough_handler)
@@ -148,8 +148,7 @@ async fn passthrough(client: Client, mut req: Request<Body>) -> anyhow::Result<R
         .path_and_query()
         .map(|v| v.as_str())
         .unwrap_or(path);
-
-    tracing::debug!("Pass through request to {path}");
+    tracing::debug!("Pass through request to {} {path}", req.method());
     let uri = format!("{}{}", CONFIG.synapse.host, path_query);
     *req.uri_mut() = Uri::try_from(uri)?;
     let resp = client.request(req).await?;
@@ -158,7 +157,7 @@ async fn passthrough(client: Client, mut req: Request<Body>) -> anyhow::Result<R
 
 async fn msg_send_handler(
     State((client, pool, cache)): State<(Client, Pool<Postgres>, ProxyCache)>,
-    Path((room_id, event_type, txn_id)): Path<(String, String, String)>,
+    Path((_version, room_id, event_type, txn_id)): Path<(String, String, String, String)>,
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
     req: Request<Body>,
 ) -> Response<Body> {
