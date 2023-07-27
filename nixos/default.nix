@@ -1,4 +1,4 @@
-pkg: { config, lib, pkgs, ... }:
+self: { config, lib, pkgs, ... }:
 
 let
   cfg = config.services.plural-kitty;
@@ -10,7 +10,7 @@ in
 
     package = lib.mkOption {
       type = lib.types.package;
-      default = pkg;
+      default = self.packages."${pkgs.system}".plural-kitty;
       description = ''
         				Overridable attribute of the plural-kitty's package to use.
         			'';

@@ -5,29 +5,32 @@
   };
 
   outputs = { self, nixpkgs, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-      in
-      rec {
-        packages = rec {
-          plural-kitty = pkgs.rustPlatform.buildRustPackage rec {
-            pname = "plural-kitty";
-            version = "0.1.0";
-            src = ./.;
-            nativeBuildInputs = with pkgs; [ git binutils pkg-config ];
-						buildInputs = with pkgs; [ openssl sqlite ];
-            cargoLock = {
-              lockFile = "${src}/Cargo.lock";
-              allowBuiltinFetchGit = true;
+    flake-utils.lib.eachDefaultSystem
+      (system:
+        let
+          pkgs = nixpkgs.legacyPackages.${system};
+        in
+        rec {
+          packages = rec {
+            plural-kitty = pkgs.rustPlatform.buildRustPackage rec {
+              pname = "plural-kitty";
+              version = "0.1.0";
+              src = ./.;
+              nativeBuildInputs = with pkgs; [ git binutils pkg-config ];
+              buildInputs = with pkgs; [ openssl sqlite ];
+              cargoLock = {
+                lockFile = "${src}/Cargo.lock";
+                allowBuiltinFetchGit = true;
+              };
             };
+            default = plural-kitty;
           };
-          default = plural-kitty;
-        };
 
-        nixosModules = rec {
-          plural-kitty = import ./nixos packages.plural-kitty;
-          default = plural-kitty;
-        };
-      });
+        })
+    // {
+      nixosModules = rec {
+        plural-kitty = import ./nixos self;
+        default = plural-kitty;
+      };
+    };
 }
