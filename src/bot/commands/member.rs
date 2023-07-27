@@ -34,7 +34,7 @@ pub async fn exec(
         match sub_command.as_str() {
             "displayname" | "dn" => add_display_name(cmd, room, user, &name).await?,
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
-            "avatar" | "av" => add_avatar(cmd, room, user, &name, &event).await?,
+            "avatar" | "av" => add_avatar(cmd, room, user, &name, event).await?,
             "show" => show_identity(room, user, &name).await?,
             "remove" => remove_ident(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
@@ -56,7 +56,7 @@ async fn new_ident(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result
 }
 
 async fn remove_ident(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
-    queries::remove_identity(user.as_str(), &name).await?;
+    queries::remove_identity(user.as_str(), name).await?;
     room.send(
         RoomMessageEventContent::text_markdown(format!("Removed idenity `{name}`")),
         None,
@@ -78,7 +78,7 @@ async fn add_display_name(
     if display_name.as_str() == "!clear" {
         queries::remove_display_name(user.as_str(), name).await?;
         room.send(
-            RoomMessageEventContent::text_markdown(format!("Cleared display name")),
+            RoomMessageEventContent::text_markdown("Cleared display name"),
             None,
         )
         .await?;

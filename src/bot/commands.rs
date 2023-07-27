@@ -93,49 +93,46 @@ pub async fn dm_handler(
             room: room.clone(),
             cmd_event_id: event.event_id.clone(),
         };
-        match &event.content.msgtype {
-            MessageType::Text(message_content) => {
-                let mut cmd = Cmd::parse(message_content)?;
-                tracing::debug!("{cmd:?}");
-                if let Some(CmdPart::Word(word)) = cmd.pop() {
-                    if word.starts_with('!') {
-                        match word.as_str() {
-                            "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
-                            "!system" | "!s" => {
-                                handler.run(system::exec(&room, &event.sender)).await
-                            }
-                            "!clear" => handler.run(clear::exec(&room, &event)).await,
-                            "!help" => handler.run_no_feddback(help(cmd, &room)).await,
-                            _ => {
-                                let content = RoomMessageEventContent::text_markdown(
-                                "Unknown command. Type `!help` for for a list command and what they do.",
-                            );
-                                room.send(content, None).await?;
-                            }
+        if let MessageType::Text(message_content) = &event.content.msgtype {
+            let mut cmd = Cmd::parse(message_content)?;
+            tracing::debug!("{cmd:?}");
+            if let Some(CmdPart::Word(word)) = cmd.pop() {
+                if word.starts_with('!') {
+                    match word.as_str() {
+                        "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
+                        "!system" | "!s" => {
+                            handler.run(system::exec(&room, &event.sender)).await
                         }
-                    } else if let Some(member_name) =
-                        queries::get_name_for_activator(event.sender.as_str(), &word)
-                            .await
-                            .context("Error getting activator")?
-                    {
-                        queries::set_current_identity(event.sender.as_str(), Some(&member_name))
-                            .await
-                            .context("Error setting current member")?;
-                        room.send(
-                            RoomMessageEventContent::text_markdown(format!(
-                                "Set current fronter to {member_name}"
-                            )),
-                            None,
-                        )
-                        .await?;
-                    } else {
-                        let msg = format!("Unknown command or activator\n\n{HELP}");
-                        room.send(RoomMessageEventContent::text_markdown(msg), None)
-                            .await?;
+                        "!clear" => handler.run(clear::exec(&room, &event)).await,
+                        "!help" => handler.run_no_feddback(help(cmd, &room)).await,
+                        _ => {
+                            let content = RoomMessageEventContent::text_markdown(
+                            "Unknown command. Type `!help` for for a list command and what they do.",
+                        );
+                            room.send(content, None).await?;
+                        }
                     }
+                } else if let Some(member_name) =
+                    queries::get_name_for_activator(event.sender.as_str(), &word)
+                        .await
+                        .context("Error getting activator")?
+                {
+                    queries::set_current_identity(event.sender.as_str(), Some(&member_name))
+                        .await
+                        .context("Error setting current member")?;
+                    room.send(
+                        RoomMessageEventContent::text_markdown(format!(
+                            "Set current fronter to {member_name}"
+                        )),
+                        None,
+                    )
+                    .await?;
+                } else {
+                    let msg = format!("Unknown command or activator\n\n{HELP}");
+                    room.send(RoomMessageEventContent::text_markdown(msg), None)
+                        .await?;
                 }
             }
-            _ => {}
         }
     }
     Ok(())
@@ -325,6 +322,8 @@ impl Drop for CmdRector {
 
 pub async fn help(mut cmd: Cmd, room: &Joined) -> anyhow::Result<ErrList> {
     let word = cmd.pop_word();
+    // TODO add most help info
+    #[allow(clippy::match_single_binding)]
     let message = match word.as_deref() {
         _ => HELP,
     };
