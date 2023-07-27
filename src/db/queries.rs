@@ -5,7 +5,7 @@ use anyhow::Context;
 use super::models::{ActivatorInfo, Identity};
 use super::POOL;
 
-pub async fn read(room_id: &str, event_id: &str) -> sqlx::Result<bool> {
+pub async fn read_msgs(room_id: &str, event_id: &str) -> sqlx::Result<bool> {
     let read = sqlx::query!(
         "SELECT true FROM read_msgs WHERE room_id = $1 AND event_id = $2",
         room_id,
@@ -197,15 +197,8 @@ pub async fn list_identities(mxid: &str) -> sqlx::Result<Vec<String>> {
         .await
 }
 
-pub async fn set_current_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
+pub async fn set_current_identity(mxid: &str, name: Option<&str>) -> sqlx::Result<()> {
     sqlx::query!("UPDATE users SET current_ident = $2 WHERE mxid = $1;", mxid, name)
-        .execute(&*POOL)
-        .await?;
-    Ok(())
-}
-
-pub async fn clear_current_identity(mxid: &str) -> sqlx::Result<()> {
-    sqlx::query!("UPDATE users SET current_ident = null WHERE mxid = $1;", mxid)
         .execute(&*POOL)
         .await?;
     Ok(())

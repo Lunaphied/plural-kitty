@@ -1,6 +1,7 @@
 #![allow(dead_code)]
 mod member;
 mod system;
+mod clear;
 
 use std::future::Future;
 
@@ -84,7 +85,7 @@ pub async fn dm_handler(
                 }
             }
         });
-        if queries::read(room.room_id().as_str(), event.event_id.as_str()).await? {
+        if queries::read_msgs(room.room_id().as_str(), event.event_id.as_str()).await? {
             tracing::debug!("Skipping already seen message");
             return Ok(());
         }
@@ -103,6 +104,7 @@ pub async fn dm_handler(
                             "!system" | "!s" => {
                                 handler.run(system::exec(&room, &event.sender)).await
                             }
+                            "!clear" => handler.run(clear::exec(&room, &event)).await,
                             "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                             _ => {
                                 let content = RoomMessageEventContent::text_markdown(
@@ -116,7 +118,7 @@ pub async fn dm_handler(
                             .await
                             .context("Error getting activator")?
                     {
-                        queries::set_current_identity(event.sender.as_str(), &member_name)
+                        queries::set_current_identity(event.sender.as_str(), Some(&member_name))
                             .await
                             .context("Error setting current member")?;
                         room.send(
