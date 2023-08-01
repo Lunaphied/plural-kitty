@@ -10,13 +10,16 @@ use hyper::{client::HttpConnector, Body, StatusCode};
 use matrix_sdk::ruma::events::room::member::RoomMemberEventContent;
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
 use std::{collections::HashMap, str::from_utf8, sync::Arc};
-use tokio::sync::RwLock;
+use tokio::sync::{Mutex, RwLock};
 
 use crate::{config::CONFIG, db::queries};
 
-#[derive(Debug, Default, Clone)]
-struct ProxyCache {
+#[derive(Debug, Clone)]
+struct AppState {
+    client: Client,
+    pool: Pool<Postgres>,
     user_ids: Arc<RwLock<HashMap<String, String>>>,
+    update_locks: Arc<RwLock<HashMap<String, Arc<Mutex<()>>>>>,
 }
 
 type Client = hyper::client::Client<HttpConnector, Body>;
@@ -29,6 +32,12 @@ pub async fn init() -> anyhow::Result<()> {
         .connect_with(db_opts.clone())
         .await
         .context(format!("Error connection to DB at `{db_opts:?}`"))?;
+    let state = AppState {
+        client,
+        pool,
+        user_ids: Default::default(),
+        update_locks: Default::default(),
+    };
 
     let app = Router::new()
         .route(
@@ -36,7 +45,7 @@ pub async fn init() -> anyhow::Result<()> {
             put(msg_send_handler).options(passthrough_handler),
         )
         .fallback(passthrough_handler)
-        .with_state((client, pool, ProxyCache::default()));
+        .with_state(state);
 
     println!("reverse proxy listening on {}", CONFIG.listen);
     axum::Server::bind(&CONFIG.listen)
@@ -46,13 +55,16 @@ pub async fn init() -> anyhow::Result<()> {
 }
 
 async fn update_indentity(
-    client: Client,
-    pool: Pool<Postgres>,
-    cache: ProxyCache,
+    AppState {
+        client,
+        pool,
+        user_ids,
+        update_locks,
+    }: &AppState,
     room_id: String,
     auth: Authorization<Bearer>,
 ) -> anyhow::Result<()> {
-    let read_lock = cache.user_ids.read().await;
+    let read_lock = user_ids.read().await;
     let user_id = match read_lock.get(auth.token()) {
         Some(user_id) => user_id.clone(),
         None => {
@@ -60,20 +72,36 @@ async fn update_indentity(
             let user_id = sqlx::query("SELECT user_id FROM access_tokens WHERE token = $1")
                 .bind(auth.token())
                 .map(|row| row.get::<String, usize>(0))
-                .fetch_one(&pool)
+                .fetch_one(pool)
                 .await
                 .context("Error getting user from auth token")?;
-            let mut write_lock = cache.user_ids.write().await;
+            let mut write_lock = user_ids.write().await;
             write_lock.insert(auth.token().to_owned(), user_id.clone());
             user_id
         }
     };
 
-    let identity = queries::get_current_indentity(&user_id)
+    if let Some(identity) = queries::get_current_indentity(&user_id)
         .await
-        .context("Error getting user's current identity")?;
-
-    if let Some(identity) = identity {
+        .context("Error getting user's current identity")?
+    {
+        // ** This ensures multiple join evens aren't sent if the users sends a second message
+        // before the join event is posted.
+        let update_lock = {
+            let read_lock = update_locks.read().await;
+            match read_lock.get(&user_id) {
+                Some(lock) => lock.to_owned(),
+                None => {
+                    drop(read_lock);
+                    let mut write_lock = update_locks.write().await;
+                    let update_lock = Arc::new(Mutex::new(()));
+                    write_lock.insert(user_id.clone(), update_lock.clone());
+                    update_lock
+                }
+            }
+        };
+        let _lock = update_lock.lock().await;
+        // **
         let event_api_url = format!(
             "{}/_matrix/client/v3/rooms/{room_id}/state/m.room.member/{user_id}",
             CONFIG.synapse.host
@@ -141,7 +169,7 @@ async fn update_indentity(
     Ok(())
 }
 
-async fn passthrough(client: Client, mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
+async fn passthrough(client: &Client, mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
     let path = req.uri().path();
     let path_query = req
         .uri()
@@ -156,7 +184,7 @@ async fn passthrough(client: Client, mut req: Request<Body>) -> anyhow::Result<R
 }
 
 async fn msg_send_handler(
-    State((client, pool, cache)): State<(Client, Pool<Postgres>, ProxyCache)>,
+    State(state): State<AppState>,
     Path((_version, room_id, event_type, txn_id)): Path<(String, String, String, String)>,
     TypedHeader(auth): TypedHeader<Authorization<Bearer>>,
     req: Request<Body>,
@@ -165,10 +193,10 @@ async fn msg_send_handler(
         "Message event handler got {room_id} {event_type} {txn_id} {}",
         auth.token()
     );
-    if let Err(e) = update_indentity(client.clone(), pool, cache, room_id, auth).await {
+    if let Err(e) = update_indentity(&state, room_id, auth).await {
         tracing::error!("Error handling message event: {e:#}");
     }
-    match passthrough(client, req).await {
+    match passthrough(&state.client, req).await {
         Ok(resp) => resp,
         Err(e) => {
             tracing::error!("Error doing pass through to matrix server");
@@ -180,11 +208,8 @@ async fn msg_send_handler(
     }
 }
 
-async fn passthrough_handler(
-    State((client, _, _)): State<(Client, Pool<Postgres>, ProxyCache)>,
-    req: Request<Body>,
-) -> Response<Body> {
-    match passthrough(client, req).await {
+async fn passthrough_handler(State(state): State<AppState>, req: Request<Body>) -> Response<Body> {
+    match passthrough(&state.client, req).await {
         Ok(resp) => resp,
         Err(e) => {
             tracing::error!("Error doing pass through to matrix server");
