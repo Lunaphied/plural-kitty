@@ -1,4 +1,4 @@
-use anyhow::{bail, Context};
+use anyhow::Context;
 use axum::{
     extract::{Path, State},
     headers::{authorization::Bearer, Authorization},
@@ -7,25 +7,29 @@ use axum::{
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body, StatusCode};
-use matrix_sdk::ruma::events::room::member::RoomMemberEventContent;
+use ruma::{
+    api::client::state::{get_state_events_for_key, send_state_event},
+    events::{room::member::RoomMemberEventContent, AnyStateEventContent, StateEventType},
+    OwnedRoomId,
+};
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
-use std::{collections::HashMap, str::from_utf8, sync::Arc};
+use std::{collections::HashMap, sync::Arc};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{config::CONFIG, db::queries};
 
 #[derive(Debug, Clone)]
 struct AppState {
-    client: Client,
+    client: HttpClient,
     pool: Pool<Postgres>,
     user_ids: Arc<RwLock<HashMap<String, String>>>,
     update_locks: Arc<RwLock<HashMap<String, Arc<Mutex<()>>>>>,
 }
 
-type Client = hyper::client::Client<HttpConnector, Body>;
+type HttpClient = hyper::client::Client<HttpConnector, Body>;
 
 pub async fn init() -> anyhow::Result<()> {
-    let client = Client::new();
+    let client = HttpClient::new();
     let db_opts = CONFIG.synapse.db.db_con_opts().await?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
@@ -102,33 +106,27 @@ async fn update_indentity(
         };
         let _lock = update_lock.lock().await;
         // **
-        let event_api_url = format!(
-            "{}/_matrix/client/v3/rooms/{room_id}/state/m.room.member/{user_id}",
-            CONFIG.synapse.host
-        );
-        let get_join_event = Request::get(&event_api_url)
-            .header("Accept", "application/json")
-            .header("Content-Type", "application/json")
-            .header("Authorization", format!("Bearer {}", auth.token()))
-            .body(Body::empty())
-            .unwrap();
-        let (info, body) = client
-            .request(get_join_event)
+        let client = ruma::Client::builder()
+            .homeserver_url(CONFIG.synapse.host.to_owned())
+            .access_token(Some(auth.token().to_owned()))
+            .http_client(client.to_owned())
             .await
-            .context("Error in request to get event api")?
-            .into_parts();
-        let body = hyper::body::to_bytes(body)
+            .context("Error building proxy matrix client")?;
+
+        let room_id: OwnedRoomId = room_id
+            .parse()
+            .with_context(|| format!("room id {room_id} not valid room id"))?;
+        let mut join_event: RoomMemberEventContent = client
+            .send_request(get_state_events_for_key::v3::Request::new(
+                room_id.clone(),
+                StateEventType::RoomMember,
+                user_id.to_owned(),
+            ))
             .await
-            .context("Error getting event req body")?;
-        if !info.status.is_success() {
-            let body = from_utf8(&body).unwrap_or("[body not UTF8]");
-            bail!("Error getting user's join event:\n\n{body}");
-        }
-        if let Ok(s) = from_utf8(&body) {
-            tracing::debug!("BODY {s}");
-        }
-        let mut join_event = serde_json::from_slice::<RoomMemberEventContent>(&body)
-            .context("Get event response not valid")?;
+            .with_context(|| format!("Error getting join event for user {user_id}"))?
+            .content
+            .deserialize_as()
+            .with_context(|| format!("Error deserializing join event for {user_id}"))?;
 
         let mut changed = false;
 
@@ -156,20 +154,24 @@ async fn update_indentity(
         }
 
         if changed {
-            let body = serde_json::to_vec(&join_event)?;
-            let set_join_event_req = Request::put(event_api_url)
-                .header("Accept", "application/json")
-                .header("Content-Type", "application/json")
-                .header("Authorization", format!("Bearer {}", auth.token()))
-                .body(Body::from(body))?;
-            client.request(set_join_event_req).await?;
+            client.send_request(
+                send_state_event::v3::Request::new(
+                    room_id,
+                    &user_id,
+                    &AnyStateEventContent::from(join_event),
+                )
+                .with_context(|| format!("Error serializing join event for {user_id}"))?,
+            ).await.with_context(|| format!("Error sending new join event for {user_id}"))?;
         }
     }
 
     Ok(())
 }
 
-async fn passthrough(client: &Client, mut req: Request<Body>) -> anyhow::Result<Response<Body>> {
+async fn passthrough(
+    client: &HttpClient,
+    mut req: Request<Body>,
+) -> anyhow::Result<Response<Body>> {
     let path = req.uri().path();
     let path_query = req
         .uri()
