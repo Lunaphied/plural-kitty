@@ -1,6 +1,7 @@
 listen: 127.0.0.1:4000
 synapse:
   host: http://127.0.0.1:8008
+  public_hs_url: http://127.0.0.1:8008
   db:
     user: synapse
     password: beepboop

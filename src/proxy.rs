@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
     headers::{authorization::Bearer, Authorization},
     http::{uri::Uri, Request, Response},
-    routing::put,
+    routing::{post, put},
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body, StatusCode};
@@ -47,6 +47,12 @@ pub async fn init() -> anyhow::Result<()> {
         .route(
             "/_matrix/client/:version/rooms/:room_id/send/:event_type/:txn_id",
             put(msg_send_handler).options(passthrough_handler),
+        )
+        .route(
+            "/_matrix/client/:version/login",
+            post(login_handler)
+                .options(passthrough_handler)
+                .get(passthrough_handler),
         )
         .fallback(passthrough_handler)
         .with_state(state);
@@ -154,18 +160,48 @@ async fn update_indentity(
         }
 
         if changed {
-            client.send_request(
-                send_state_event::v3::Request::new(
-                    room_id,
-                    &user_id,
-                    &AnyStateEventContent::from(join_event),
+            client
+                .send_request(
+                    send_state_event::v3::Request::new(
+                        room_id,
+                        &user_id,
+                        &AnyStateEventContent::from(join_event),
+                    )
+                    .with_context(|| format!("Error serializing join event for {user_id}"))?,
                 )
-                .with_context(|| format!("Error serializing join event for {user_id}"))?,
-            ).await.with_context(|| format!("Error sending new join event for {user_id}"))?;
+                .await
+                .with_context(|| format!("Error sending new join event for {user_id}"))?;
         }
     }
 
     Ok(())
+}
+
+async fn replace_login(resp: Response<Body>) -> anyhow::Result<Response<Body>> {
+    if !resp.status().is_success() {
+        tracing::debug!("login request returned error");
+        return Ok(resp);
+    }
+    tracing::info!(
+        "Setting HS in login request to {}",
+        CONFIG.synapse.public_hs_url
+    );
+    let (header, body) = resp.into_parts();
+    let body_bytes = hyper::body::to_bytes(body)
+        .await
+        .context("Error receiving login response")?;
+    let mut body_json: serde_json::Value =
+        serde_json::from_slice(&body_bytes).context("login response not a json object")?;
+    body_json
+        .as_object_mut()
+        .ok_or_else(|| anyhow::anyhow!("login response not a json object"))?
+        .insert(
+            "home_server".to_owned(),
+            CONFIG.synapse.public_hs_url.clone().into(),
+        );
+    let new_body_bytes =
+        serde_json::to_vec(&body_json).context("Error serializing login response")?;
+    Ok(Response::from_parts(header, Body::from(new_body_bytes)))
 }
 
 async fn passthrough(
@@ -202,6 +238,32 @@ async fn msg_send_handler(
         Ok(resp) => resp,
         Err(e) => {
             tracing::error!("Error doing pass through to matrix server");
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(format!("{e:#}").into())
+                .unwrap()
+        }
+    }
+}
+
+async fn login_handler(
+    State(state): State<AppState>,
+    Path(_version): Path<String>,
+    req: Request<Body>,
+) -> Response<Body> {
+    match passthrough(&state.client, req).await {
+        Ok(resp) => match replace_login(resp).await {
+            Ok(resp) => dbg!(resp),
+            Err(e) => {
+                tracing::error!("Error modifying login response: {e:#}");
+                Response::builder()
+                    .status(StatusCode::INTERNAL_SERVER_ERROR)
+                    .body(format!("{e:#}").into())
+                    .unwrap()
+            }
+        },
+        Err(e) => {
+            tracing::error!("Error doing pass through to matrix server: {e:#}");
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(format!("{e:#}").into())
