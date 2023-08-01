@@ -178,7 +178,7 @@ pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
 pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
     sqlx::query_as!(
         Identity,
-        r#"SELECT i.mxid, i.name, i.display_name, i.avatar,
+        r#"SELECT i.mxid, i.name, i.display_name, i.avatar, i.track_account,
              COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as "activators!" 
            FROM identities AS i LEFT JOIN activators AS a
            ON i.mxid = a.mxid AND i.name = a.name 
