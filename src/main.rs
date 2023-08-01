@@ -2,7 +2,7 @@ mod bot;
 mod config;
 mod db;
 mod late_init;
-mod relay;
+mod proxy;
 
 use anyhow::Context;
 
@@ -23,5 +23,5 @@ async fn main() -> anyhow::Result<()> {
             std::process::exit(1);
         }
     });
-    relay::init().await
+    proxy::init().await
 }
