@@ -7,7 +7,7 @@ use axum::{
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body, StatusCode};
-use ruma::{
+use matrix_sdk::ruma::{
     api::client::state::{get_state_events_for_key, send_state_event},
     events::{room::member::RoomMemberEventContent, AnyStateEventContent, StateEventType},
     OwnedRoomId,
@@ -112,7 +112,7 @@ async fn update_indentity(
         };
         let _lock = update_lock.lock().await;
         // **
-        let client = ruma::Client::builder()
+        let client = matrix_sdk::ruma::Client::builder()
             .homeserver_url(CONFIG.synapse.host.to_owned())
             .access_token(Some(auth.token().to_owned()))
             .http_client(client.to_owned())

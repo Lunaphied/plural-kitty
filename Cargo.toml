@@ -2,6 +2,7 @@
 name = "plural-kitty"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.70.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
@@ -14,7 +15,6 @@ hyper = { version = "0.14.26", features = ["full"] }
 once_cell = "1.18.0"
 percent-encoding = "2.3.0"
 rpassword = "7.2.0"
-ruma = { version = "0.8.2", features = ["client-hyper-native-tls", "client-ext-client-api", "client-api-c"] }
 serde = { version = "1.0.164", features = ["derive"] }
 serde_json = "1.0.96"
 serde_yaml = "0.9.21"
@@ -24,5 +24,6 @@ tracing = "0.1.37"
 tracing-subscriber = "0.3.17"
 
 [dependencies.matrix-sdk]
-git = "https://github.com/matrix-org/matrix-rust-sdk.git"
-features = ["markdown", "anyhow"]
+git = "https://codeberg.org/Apothecary/matrix-rust-sdk.git"
+branch = "plural-kitty"
+features = ["markdown", "anyhow", "ruma-hyper"]
