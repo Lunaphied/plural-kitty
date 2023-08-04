@@ -80,18 +80,6 @@
     },
     "query": "SELECT name, value FROM activators WHERE mxid = $1;"
   },
-  "278e5098ab2c685f58445dfd816f5ebe5182924940618b28c27c004efeca07ac": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE users SET current_ident = null WHERE mxid = $1;"
-  },
   "31a22d83d99c03d00199314f4465c67ddf130edcb785614ca963e5344fa04c88": {
     "describe": {
       "columns": [
@@ -147,6 +135,57 @@
     },
     "query": "DELETE FROM identities WHERE mxid = $1 AND name = $2;"
   },
+  "448af6aafa19ff5db7580bd6cff966d73d7bddb672f0b6b49a4fb42a2b8db6c0": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mxid",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "track_account",
+          "ordinal": 4,
+          "type_info": "Bool"
+        },
+        {
+          "name": "activators!",
+          "ordinal": 5,
+          "type_info": "TextArray"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT i.mxid, i.name, i.display_name, i.avatar, i.track_account,\n             COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as \"activators!\" \n           FROM identities AS i LEFT JOIN activators AS a\n           ON i.mxid = a.mxid AND i.name = a.name \n           WHERE i.mxid = $1 AND i.name = $2\n           GROUP BY i.mxid, i.name;"
+  },
   "48413dd36ae666560276076dc5d056e1005de0b4bc80f0aff1cc86534133e1ad": {
     "describe": {
       "columns": [],
@@ -200,51 +239,6 @@
       }
     },
     "query": "UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;"
-  },
-  "825eba0c94020509eabdf34d81d9eb4c0cbd6f5eb2111d2d93ec47f3d43285d6": {
-    "describe": {
-      "columns": [
-        {
-          "name": "mxid",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "display_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "avatar",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "activators!",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        true,
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT i.mxid, i.name, i.display_name, i.avatar,\n             COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as \"activators!\" \n           FROM identities AS i LEFT JOIN activators AS a\n           ON i.mxid = a.mxid AND i.name = a.name \n           WHERE i.mxid = $1 AND i.name = $2\n           GROUP BY i.mxid, i.name;"
   },
   "965bf74224a06b1438f37b0200953676b8dee2026864b435537b2b355173154c": {
     "describe": {
