@@ -13,7 +13,7 @@ use matrix_sdk::ruma::{
     OwnedRoomId,
 };
 use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
-use std::{collections::HashMap, sync::Arc};
+use std::{collections::HashMap, sync::{Arc, atomic::AtomicBool}};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{config::CONFIG, db::queries};
@@ -28,6 +28,9 @@ struct AppState {
 
 type HttpClient = hyper::client::Client<HttpConnector, Body>;
 
+pub static STARTED: AtomicBool = AtomicBool::new(false);
+
+#[tokio::main]
 pub async fn init() -> anyhow::Result<()> {
     let client = HttpClient::new();
     let db_opts = CONFIG.synapse.db.db_con_opts().await?;
@@ -58,6 +61,7 @@ pub async fn init() -> anyhow::Result<()> {
         .with_state(state);
 
     println!("reverse proxy listening on {}", CONFIG.listen);
+    STARTED.store(true, std::sync::atomic::Ordering::SeqCst);
     axum::Server::bind(&CONFIG.listen)
         .serve(app.into_make_service())
         .await?;

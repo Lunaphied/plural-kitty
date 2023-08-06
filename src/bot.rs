@@ -1,7 +1,7 @@
 mod commands;
 mod parser;
 
-use std::time::Duration;
+use std::{sync::atomic::AtomicBool, time::Duration};
 
 use anyhow::{anyhow, Context};
 use matrix_sdk::{
@@ -11,6 +11,8 @@ use matrix_sdk::{
 use tokio::time::sleep;
 
 use crate::config::CONFIG;
+
+pub static STARTED: AtomicBool = AtomicBool::new(false);
 
 pub async fn create_client() -> anyhow::Result<Client> {
     async fn client() -> anyhow::Result<Client> {
@@ -69,9 +71,9 @@ pub async fn create_client() -> anyhow::Result<Client> {
     }
 }
 
-pub async fn init(client: Client) -> anyhow::Result<()> {
-    // Log in to matrix
-
+#[tokio::main]
+pub async fn init() -> anyhow::Result<()> {
+    let client = create_client().await.context("Error creating bot client")?;
     // An initial sync to set up state and so our bot doesn't respond to old
     // messages. If the `StateStore` finds saved state in the location given the
     // initial sync will be skipped in favor of loading state from the store
@@ -115,6 +117,7 @@ pub async fn init(client: Client) -> anyhow::Result<()> {
     );
     tracing::info!("Initial sync done");
     let settings = SyncSettings::default().token(response.next_batch);
+    STARTED.store(true, std::sync::atomic::Ordering::SeqCst);
     client.sync(settings).await?;
 
     Ok(())
