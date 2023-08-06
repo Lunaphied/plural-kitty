@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS identities (
     name            TEXT,
     display_name    TEXT,
     avatar          TEXT,
+    track_account   BOOLEAN,
     PRIMARY KEY (mxid, name)
 );
 
