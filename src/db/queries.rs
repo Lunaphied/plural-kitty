@@ -1,8 +1,6 @@
-#![allow(dead_code)]
-
 use anyhow::Context;
 
-use super::models::{ActivatorInfo, Identity};
+use super::models::*;
 use super::POOL;
 
 pub async fn read_msgs(room_id: &str, event_id: &str) -> sqlx::Result<bool> {
@@ -52,13 +50,6 @@ pub async fn create_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
 pub async fn remove_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
         "DELETE FROM identities WHERE mxid = $1 AND name = $2;",
-        mxid,
-        name
-    )
-    .execute(&*POOL)
-    .await?;
-    sqlx::query!(
-        "DELETE FROM activators WHERE mxid = $1 AND name = $2;",
         mxid,
         name
     )
@@ -120,29 +111,9 @@ pub async fn remove_avatar(mxid: &str, name: &str) -> sqlx::Result<()> {
     Ok(())
 }
 
-pub async fn get_activators(mxid: &str) -> sqlx::Result<Vec<ActivatorInfo>> {
-    sqlx::query_as!(
-        ActivatorInfo,
-        "SELECT name, value FROM activators WHERE mxid = $1;",
-        mxid
-    )
-    .fetch_all(&*POOL)
-    .await
-}
-
-pub async fn get_name_for_activator(mxid: &str, activator: &str) -> sqlx::Result<Option<String>> {
-    sqlx::query_scalar!(
-        "SELECT name FROM activators WHERE mxid = $1 AND value = $2",
-        mxid,
-        activator
-    )
-    .fetch_optional(&*POOL)
-    .await
-}
-
 pub async fn add_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "INSERT INTO activators (mxid, name, value) VALUES ($1, $2, $3);",
+        "UPDATE identities SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2",
         mxid,
         name,
         activator
@@ -154,7 +125,7 @@ pub async fn add_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Res
 
 pub async fn remove_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "DELETE FROM activators WHERE mxid = $1 AND name = $2 AND value = $3;",
+        "UPDATE identities SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2",
         mxid,
         name,
         activator
@@ -178,12 +149,7 @@ pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
 pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
     sqlx::query_as!(
         Identity,
-        r#"SELECT i.mxid, i.name, i.display_name, i.avatar, i.track_account,
-             COALESCE(array_agg(a.value) FILTER (WHERE a.value IS NOT NULL), '{}') as "activators!" 
-           FROM identities AS i LEFT JOIN activators AS a
-           ON i.mxid = a.mxid AND i.name = a.name 
-           WHERE i.mxid = $1 AND i.name = $2
-           GROUP BY i.mxid, i.name;"#,
+        "SELECT * FROM identities WHERE mxid = $1 AND name = $2",
         mxid,
         name
     )
@@ -198,22 +164,57 @@ pub async fn list_identities(mxid: &str) -> sqlx::Result<Vec<String>> {
 }
 
 pub async fn set_current_identity(mxid: &str, name: Option<&str>) -> sqlx::Result<()> {
-    sqlx::query!("UPDATE users SET current_ident = $2 WHERE mxid = $1;", mxid, name)
-        .execute(&*POOL)
-        .await?;
+    sqlx::query!(
+        "UPDATE users SET current_ident = $2 WHERE mxid = $1;",
+        mxid,
+        name
+    )
+    .execute(&*POOL)
+    .await?;
     Ok(())
 }
 
 pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity>> {
-    match sqlx::query_scalar!("SELECT current_ident FROM users WHERE mxid = $1;", mxid)
-        .fetch_optional(&*POOL)
-        .await
-        .context("Error getting current_ident")?
-    {
-        Some(Some(name)) => get_identity(mxid, &name)
-            .await
-            .map(Some)
-            .map_err(|e| e.into()),
-        _ => Ok(None),
-    }
+    sqlx::query_as!(
+        Identity,
+        r#"
+        SELECT
+            i.mxid AS mxid,
+            i.name AS name, 
+            i.display_name AS display_name,
+            i.avatar AS avatar,
+            i.activators AS activators,
+            i.track_account AS track_account
+        FROM users AS u 
+            JOIN identities AS i ON u.mxid = i.mxid AND u.current_ident = i.name
+        WHERE u.mxid = $1
+        "#,
+        mxid
+    )
+    .fetch_optional(&*POOL)
+    .await
+    .context("Error getting current_ident")
+}
+
+pub async fn set_identity_from_activator(
+    mxid: &str,
+    activator: &str,
+) -> sqlx::Result<Option<String>> {
+    sqlx::query_scalar!(
+        r#"
+        UPDATE users
+        SET current_ident = sub.name
+        FROM (
+            SELECT name
+            FROM identities
+            WHERE mxid = $1 AND $2 = ANY(activators)
+        ) AS sub
+        WHERE mxid = $1
+        RETURNING current_ident AS "name!"
+    "#,
+        mxid,
+        activator
+    )
+    .fetch_optional(&*POOL)
+    .await
 }

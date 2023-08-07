@@ -1,7 +1,7 @@
 #![allow(dead_code)]
+mod clear;
 mod member;
 mod system;
-mod clear;
 
 use std::future::Future;
 
@@ -100,9 +100,7 @@ pub async fn dm_handler(
                 if word.starts_with('!') {
                     match word.as_str() {
                         "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
-                        "!system" | "!s" => {
-                            handler.run(system::exec(&room, &event.sender)).await
-                        }
+                        "!system" | "!s" => handler.run(system::exec(&room, &event.sender)).await,
                         "!clear" => handler.run(clear::exec(&room, &event)).await,
                         "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                         _ => {
@@ -112,17 +110,14 @@ pub async fn dm_handler(
                             room.send(content, None).await?;
                         }
                     }
-                } else if let Some(member_name) =
-                    queries::get_name_for_activator(event.sender.as_str(), &word)
+                } else if let Some(name) =
+                    queries::set_identity_from_activator(event.sender.as_str(), &word)
                         .await
-                        .context("Error getting activator")?
+                        .context("Error updating current member")?
                 {
-                    queries::set_current_identity(event.sender.as_str(), Some(&member_name))
-                        .await
-                        .context("Error setting current member")?;
                     room.send(
                         RoomMessageEventContent::text_markdown(format!(
-                            "Set current fronter to {member_name}"
+                            "Set current fronter to {name}"
                         )),
                         None,
                     )
