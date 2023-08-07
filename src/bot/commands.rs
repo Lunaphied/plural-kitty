@@ -31,13 +31,16 @@ similar to Plural Kit for Discord.
 - To start using Plural Kitty create a system member: `!member new [member name]`
 - You can set a display name like this: `!member [member name] displayname [name]` 
 or `!m [member name] dn [display name]`.
-- You can set an avatar like this: send `!member [member name] avatar [name]` 
-or `!m [member name] av [display name]` in response to the avatar image.
-- `!system` or `!s` to view a list of system members.
-- You can set clear a display name like this: `!member [member name] displayname !clear` 
+- You can set an avatar like this: send `!member [member name] avatar` 
+or `!m [member name] av` in response to the avatar image. Or send `!m [member name] avatar [mxc url or image]`.
+- `!system` or `!s` to view information about your system.
+- You can clear a display name like this: `!member [member name] displayname !clear` 
 or `!m [member name] dn [display name]`.
 - You can clear an avatar like this: send `!member [member name] avatar !clear` 
 or `!m [member name] av !clear`.
+- You can set a member's display name or avatar to your account's current one by setting it to `!acc`.
+- You can set a member's display name and avatar to track your account's by sending
+`!m [member name] trackaccount` or `!m [member name] ta`.
 - You can remove a member like this; `!member [member name] remove`.
 - To show this help message type `!help`
 
