@@ -276,3 +276,49 @@ pub async fn toggle_tracking(mxid: &str, name: &str) -> sqlx::Result<bool> {
     .fetch_one(&*PK_POOL)
     .await
 }
+
+pub async fn is_room_ignored(mxid: &str, room_id: &str) -> sqlx::Result<bool> {
+    sqlx::query!(
+        "SELECT NULL AS x FROM ignored_rooms WHERE mxid = $1 AND room_id = $2",
+        mxid,
+        room_id
+    )
+    .fetch_optional(&*PK_POOL)
+    .await
+    .map(|res| res.is_some())
+}
+
+pub async fn ignore_room(mxid: &str, room_id: &str) -> sqlx::Result<()> {
+    sqlx::query!(
+        "INSERT INTO ignored_rooms (mxid, room_id) VALUES ($1, $2)",
+        mxid,
+        room_id
+    )
+    .execute(&*PK_POOL)
+    .await?;
+    Ok(())
+}
+
+pub async fn unignore_room(mxid: &str, room_id: &str) -> sqlx::Result<()> {
+    sqlx::query!(
+        "DELETE FROM ignored_rooms WHERE mxid = $1 AND room_id = $2",
+        mxid,
+        room_id
+    )
+    .execute(&*PK_POOL)
+    .await?;
+    Ok(())
+}
+
+pub async fn list_ignored(mxid: &str) -> sqlx::Result<Vec<String>> {
+    sqlx::query_scalar!("SELECT room_id FROM ignored_rooms WHERE mxid = $1", mxid)
+        .fetch_all(&*PK_POOL)
+        .await
+}
+
+pub async fn room_alias(room_id: &str) -> sqlx::Result<String> {
+    sqlx::query_scalar("SELECT room_alias FROM room_aliases WHERE room_id = $1")
+        .bind(room_id)
+        .fetch_one(&*SYNAPSE_POOL)
+        .await
+}

@@ -124,8 +124,8 @@ async fn add_avatar(
         .await?;
     } else if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
-            MessageLikeEvent::Original(OriginalMessageLikeEvent { 
-                content: RoomMessageEventContent { msgtype: MessageType::Image(image_event), .. }, .. 
+            MessageLikeEvent::Original(OriginalMessageLikeEvent {
+                content: RoomMessageEventContent { msgtype: MessageType::Image(image_event), .. }, ..
             }),
         )) = room
             .event(&in_reply_to.event_id)
@@ -192,11 +192,14 @@ async fn activator_cmd(
     }
     match sub_command.as_str() {
         "add" => {
-            let activator = cmd.pop_word().ok_or_else(|| {
-                anyhow!(
+            let activator = cmd
+                .pop_word()
+                .ok_or_else(|| {
+                    anyhow!(
                     "!member [member] activator add needs the activation sequence as an arquement"
                 )
-            })?.to_lowercase();
+                })?
+                .to_lowercase();
             if activator.starts_with('!') {
                 bail!("activation sequence cannot start with `!`");
             }

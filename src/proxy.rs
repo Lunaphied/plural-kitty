@@ -81,6 +81,10 @@ async fn update_indentity(
         .await
         .context("Error getting user's current identity")?
     {
+        if queries::is_room_ignored(&user_id, &room_id).await? {
+            tracing::debug!("Message in ignored room");
+            return Ok(());
+        }
         // ** This ensures multiple join evens aren't sent if the users sends a second message
         // before the join event is posted.
         let update_lock = {

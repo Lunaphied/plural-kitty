@@ -1,5 +1,18 @@
 {
   "db": "PostgreSQL",
+  "08233538ba48d754f4b5d33ff0c33864d8abbd2984dc3f6455b2b52d8608ce28": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM ignored_rooms WHERE mxid = $1 AND room_id = $2"
+  },
   "0826db2c7d44296fa13f3255fd24736456cf5e95d35503cba0d63e62f132419e": {
     "describe": {
       "columns": [
@@ -136,6 +149,27 @@
       }
     },
     "query": "UPDATE identities SET display_name = $3 WHERE mxid = $1 AND name = $2;"
+  },
+  "5e148e331b7e5fadcc32de211e3605cccd92786a9866b492fd6de3cb0ae9549e": {
+    "describe": {
+      "columns": [
+        {
+          "name": "x",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        null
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT NULL AS x FROM ignored_rooms WHERE mxid = $1 AND room_id = $2"
   },
   "5ee9592086809e13e52630235c0d61cc98bdf26cdbdbe4c8d1ef90bdab6a0b31": {
     "describe": {
@@ -353,6 +387,26 @@
     },
     "query": "INSERT INTO read_msgs(room_id, event_id) \n                     VALUES ($1, $2) ON CONFLICT (room_id) DO \n                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1"
   },
+  "bf25031bf5a9c37b3c9187ec0cf7ba3599dec58736777d2026c8bf475eae7fe2": {
+    "describe": {
+      "columns": [
+        {
+          "name": "room_id",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT room_id FROM ignored_rooms WHERE mxid = $1"
+  },
   "c71e4d216ef5ce37634465b4552c8b5bf1cb04d7e4adbfc331f47a23507a2f69": {
     "describe": {
       "columns": [],
@@ -377,6 +431,19 @@
       }
     },
     "query": "INSERT INTO users (mxid) VALUES ($1) ON CONFLICT DO NOTHING;"
+  },
+  "decb6365b92a9888c17507781ea299a99dc4a99e8ac8e47249b0cde109ef3853": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO ignored_rooms (mxid, room_id) VALUES ($1, $2)"
   },
   "f16c64ed3d2565d725ef0b4eca4cfc871a5435e281756a7a0b3a7464b9ebd7e4": {
     "describe": {

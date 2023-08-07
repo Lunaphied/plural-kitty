@@ -13,6 +13,12 @@ CREATE TABLE IF NOT EXISTS identities (
     PRIMARY KEY (mxid, name)
 );
 
+CREATE TABLE IF NOT EXISTS ignored_rooms (
+    mxid    TEXT,
+    room_id TEXT,
+    PRIMARY KEY (mxid, room_id)
+);
+
 CREATE TABLE IF NOT EXISTS read_msgs (
     room_id     TEXT PRIMARY KEY,
     event_id    TEXT NOT NULL

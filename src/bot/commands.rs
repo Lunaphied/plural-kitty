@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 mod clear;
+mod ignore;
 mod member;
 mod system;
 
@@ -52,6 +53,12 @@ Activators are case insensitive.
 `!m [name] act add [activator string]`
 - You can remove an activator like this: `!member [member name] activator remove [activator string]` or
 `!m [name] act rm [activator string]`
+
+You may not want Plural Kitty to change your name and avatar in certain rooms.
+
+- To ignore a certain room send: `!ignore [room id or avatar]` or `!i [room id or avatar]`.
+- Send that again to stop ignoring the room.
+- Send just `!ignore` or `!i` to see a list of ignored rooms.
 
 ## Example of setting up a member:
 
@@ -107,6 +114,9 @@ pub async fn dm_handler(
                     match word.as_str() {
                         "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
                         "!system" | "!s" => handler.run(system::exec(&room, &event.sender)).await,
+                        "!ignore" | "!i" => {
+                            handler.run(ignore::exec(cmd, &room, &client, &event)).await
+                        }
                         "!clear" => handler.run(clear::exec(&room, &event)).await,
                         "!help" => handler.run_no_feddback(help(cmd, &room)).await,
                         _ => {
