@@ -34,7 +34,28 @@
     },
     "query": "SELECT true FROM read_msgs WHERE room_id = $1 AND event_id = $2"
   },
-  "0eee0ca234ff4766ba2ca1275173aaad25122e3d5e6022cf4e6013168950e7b5": {
+  "1ab29b41b8b14a2862d1f118d376d07c3b6985d2463a8e715edfbb19c1956622": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name!",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        true
+      ],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        UPDATE users\n        SET current_fronter = sub.name\n        FROM (\n            SELECT name\n            FROM members\n            WHERE mxid = $1 AND $2 = ANY(activators)\n        ) AS sub\n        WHERE mxid = $1\n        RETURNING current_fronter AS \"name!\"\n    "
+  },
+  "1b59c6a1ef32455318272963618c40039449670bb0263d03953c533fae2d1e7b": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -46,9 +67,35 @@
         ]
       }
     },
-    "query": "UPDATE identities SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2"
+    "query": "UPDATE members SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2"
   },
-  "18fe29cd48a1ccd0378e00dda8c5a2312cf06915192b97c786b4b869a06e0729": {
+  "1bdd395a6d865f9e449d82b27d7d33a35e7ae14835189193c7a81a6641460155": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE members SET avatar = null WHERE mxid = $1 AND name = $2;"
+  },
+  "3231c77406a54e855b1e31b134ea18ff1f1182d7c73f862206aa4823e603b1f9": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "INSERT INTO members (mxid, name) VALUES ($1, $2);"
+  },
+  "3316cb9019766dac5f14eb0cdbd032db0d4035388fe01e9787f8c3c4bdb683d6": {
     "describe": {
       "columns": [
         {
@@ -67,76 +114,9 @@
         ]
       }
     },
-    "query": "UPDATE identities SET track_account = NOT track_account\n        WHERE mxid = $1 AND name = $2 RETURNING track_account"
+    "query": "UPDATE members SET track_account = NOT track_account\n        WHERE mxid = $1 AND name = $2 RETURNING track_account"
   },
-  "1f3385378e98c94be47c83fff6c7dccfa4abbee6e261dd6109c929d08fbdfea3": {
-    "describe": {
-      "columns": [
-        {
-          "name": "name",
-          "ordinal": 0,
-          "type_info": "Text"
-        }
-      ],
-      "nullable": [
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT name FROM identities WHERE mxid = $1;"
-  },
-  "201cc042f1d9e53d73aef1027b7f08aabffabb77092d4044bea247fa58b4bfa5": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE users SET current_ident = $2 WHERE mxid = $1;"
-  },
-  "31a22d83d99c03d00199314f4465c67ddf130edcb785614ca963e5344fa04c88": {
-    "describe": {
-      "columns": [
-        {
-          "name": "x",
-          "ordinal": 0,
-          "type_info": "Int4"
-        }
-      ],
-      "nullable": [
-        null
-      ],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "SELECT 1 as x FROM identities WHERE mxid = $1 AND name = $2;"
-  },
-  "3ca5130e29d7d7d1e2f0b7b844f4fc8079088e87063a2648f7dc7cc4cbc5cbf6": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "DELETE FROM identities WHERE mxid = $1 AND name = $2;"
-  },
-  "48413dd36ae666560276076dc5d056e1005de0b4bc80f0aff1cc86534133e1ad": {
+  "3cccaeef4c4b5f3c211dd364d4713b3f4e2d9440fb4ed333ce668d0093d1b346": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -148,7 +128,34 @@
         ]
       }
     },
-    "query": "UPDATE identities SET display_name = $3 WHERE mxid = $1 AND name = $2;"
+    "query": "\n        UPDATE members\n        SET \n            display_name = $2,\n            avatar = $3\n        WHERE mxid = $1\n        AND track_account = TRUE\n    "
+  },
+  "44c927a3911bf9591c1587fd52559c17af9e4c2949721c4d22c56e36ad0abbdd": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE members SET display_name = null WHERE mxid = $1 AND name = $2;"
+  },
+  "5c0ad3e3aa68ec476656304c7eb529edaff2b27ab90050312e911be54293461e": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE members SET display_name = $3 WHERE mxid = $1 AND name = $2;"
   },
   "5e148e331b7e5fadcc32de211e3605cccd92786a9866b492fd6de3cb0ae9549e": {
     "describe": {
@@ -171,7 +178,27 @@
     },
     "query": "SELECT NULL AS x FROM ignored_rooms WHERE mxid = $1 AND room_id = $2"
   },
-  "5ee9592086809e13e52630235c0d61cc98bdf26cdbdbe4c8d1ef90bdab6a0b31": {
+  "7499d51af8d5074170d51ada6b330fa0e31c5029bc80def4fc8f3684cb0a99ac": {
+    "describe": {
+      "columns": [
+        {
+          "name": "name",
+          "ordinal": 0,
+          "type_info": "Text"
+        }
+      ],
+      "nullable": [
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "SELECT name FROM members WHERE mxid = $1;"
+  },
+  "77b822253ffd2bba96d79e768ff6cfc023b4f0dc6afed81c9901bbcd70d29e5b": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -182,9 +209,22 @@
         ]
       }
     },
-    "query": "INSERT INTO identities (mxid, name) VALUES ($1, $2);"
+    "query": "UPDATE users SET current_fronter = null WHERE mxid = $1 AND current_fronter = $2;"
   },
-  "6122ec3162169bb6e496997ae09bca71897433e948deecf5ec803c69976456ed": {
+  "92ad8ec9993acc0ecab12b0fc298beab65eee9398f49fb4fd2478317f3abd979": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE users SET current_fronter = $2 WHERE mxid = $1;"
+  },
+  "9653ad170dfe1df2fba4ceed907ad5662ee1a7e0226c602a7286bf357cb7c949": {
     "describe": {
       "columns": [
         {
@@ -233,46 +273,19 @@
         ]
       }
     },
-    "query": "SELECT * FROM identities WHERE mxid = $1 AND name = $2"
+    "query": "SELECT * FROM members WHERE mxid = $1 AND name = $2"
   },
-  "643a51b3ddae46927ee2c81d3c152c790460511efb1218a7fc2584083e064722": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE identities SET display_name = null WHERE mxid = $1 AND name = $2;"
-  },
-  "6b4766b070a49a70462e86a861a01ec92974cf51ed7c6536f09fa6d77d0b9eb4": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;"
-  },
-  "72bdabfe128abb0e7a406abee9b2ab56db980bff0a008136595545abbd8cfe62": {
+  "990fdbd71e40f3cebd597e597c99d2f7eb8b6cfb812d20768ce916d3a778aa76": {
     "describe": {
       "columns": [
         {
-          "name": "name!",
+          "name": "x",
           "ordinal": 0,
-          "type_info": "Text"
+          "type_info": "Int4"
         }
       ],
       "nullable": [
-        true
+        null
       ],
       "parameters": {
         "Left": [
@@ -281,9 +294,9 @@
         ]
       }
     },
-    "query": "\n        UPDATE users\n        SET current_ident = sub.name\n        FROM (\n            SELECT name\n            FROM identities\n            WHERE mxid = $1 AND $2 = ANY(activators)\n        ) AS sub\n        WHERE mxid = $1\n        RETURNING current_ident AS \"name!\"\n    "
+    "query": "SELECT 1 as x FROM members WHERE mxid = $1 AND name = $2;"
   },
-  "819b12febe13b45e7587218b87a3993c2f2715a06422aaed91830aa28abd7e3e": {
+  "acfb84b425c9837c6a002b5c4bbe342017e08471bdb4c1f39fccfe0b03a35792": {
     "describe": {
       "columns": [],
       "nullable": [],
@@ -295,84 +308,7 @@
         ]
       }
     },
-    "query": "UPDATE identities SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2"
-  },
-  "959abe9f3d64eb65bac7f8655856f1a5ed96f74c6d576613e31da9b4ed1b33f5": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        UPDATE identities\n        SET \n            display_name = $2,\n            avatar = $3\n        WHERE mxid = $1\n        AND track_account = TRUE\n    "
-  },
-  "965bf74224a06b1438f37b0200953676b8dee2026864b435537b2b355173154c": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE identities SET avatar = null WHERE mxid = $1 AND name = $2;"
-  },
-  "985f4f9cb1ace29d892fe0256a11516a023bfd54d246904b446e3dcdc1165727": {
-    "describe": {
-      "columns": [
-        {
-          "name": "mxid",
-          "ordinal": 0,
-          "type_info": "Text"
-        },
-        {
-          "name": "name",
-          "ordinal": 1,
-          "type_info": "Text"
-        },
-        {
-          "name": "display_name",
-          "ordinal": 2,
-          "type_info": "Text"
-        },
-        {
-          "name": "avatar",
-          "ordinal": 3,
-          "type_info": "Text"
-        },
-        {
-          "name": "activators",
-          "ordinal": 4,
-          "type_info": "TextArray"
-        },
-        {
-          "name": "track_account",
-          "ordinal": 5,
-          "type_info": "Bool"
-        }
-      ],
-      "nullable": [
-        false,
-        false,
-        true,
-        true,
-        false,
-        false
-      ],
-      "parameters": {
-        "Left": [
-          "Text"
-        ]
-      }
-    },
-    "query": "\n        SELECT\n            i.mxid AS mxid,\n            i.name AS name, \n            i.display_name AS display_name,\n            i.avatar AS avatar,\n            i.activators AS activators,\n            i.track_account AS track_account\n        FROM users AS u \n            JOIN identities AS i ON u.mxid = i.mxid AND u.current_ident = i.name\n        WHERE u.mxid = $1\n        "
+    "query": "UPDATE members SET avatar = $3 WHERE mxid = $1 AND name = $2;"
   },
   "b47a3281b2e9a170be27b5d2df5edcc3a229cf32368cc601d742b9af2dab7291": {
     "describe": {
@@ -386,6 +322,56 @@
       }
     },
     "query": "INSERT INTO read_msgs(room_id, event_id) \n                     VALUES ($1, $2) ON CONFLICT (room_id) DO \n                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1"
+  },
+  "bd50efb4a53c4308d9d041faaf97cc5d09a0f96c0f98f52298dd32faf8ca0203": {
+    "describe": {
+      "columns": [
+        {
+          "name": "mxid",
+          "ordinal": 0,
+          "type_info": "Text"
+        },
+        {
+          "name": "name",
+          "ordinal": 1,
+          "type_info": "Text"
+        },
+        {
+          "name": "display_name",
+          "ordinal": 2,
+          "type_info": "Text"
+        },
+        {
+          "name": "avatar",
+          "ordinal": 3,
+          "type_info": "Text"
+        },
+        {
+          "name": "activators",
+          "ordinal": 4,
+          "type_info": "TextArray"
+        },
+        {
+          "name": "track_account",
+          "ordinal": 5,
+          "type_info": "Bool"
+        }
+      ],
+      "nullable": [
+        false,
+        false,
+        true,
+        true,
+        false,
+        false
+      ],
+      "parameters": {
+        "Left": [
+          "Text"
+        ]
+      }
+    },
+    "query": "\n        SELECT\n            m.mxid AS mxid,\n            m.name AS name, \n            m.display_name AS display_name,\n            m.avatar AS avatar,\n            m.activators AS activators,\n            m.track_account AS track_account\n        FROM users AS u \n            JOIN members AS m ON u.mxid = m.mxid AND u.current_fronter = m.name\n        WHERE u.mxid = $1\n        "
   },
   "bf25031bf5a9c37b3c9187ec0cf7ba3599dec58736777d2026c8bf475eae7fe2": {
     "describe": {
@@ -406,19 +392,6 @@
       }
     },
     "query": "SELECT room_id FROM ignored_rooms WHERE mxid = $1"
-  },
-  "c71e4d216ef5ce37634465b4552c8b5bf1cb04d7e4adbfc331f47a23507a2f69": {
-    "describe": {
-      "columns": [],
-      "nullable": [],
-      "parameters": {
-        "Left": [
-          "Text",
-          "Text"
-        ]
-      }
-    },
-    "query": "UPDATE users SET current_ident = null WHERE mxid = $1 AND current_ident = $2;"
   },
   "d76d45b4beeda623ae55eff4a68ce320a7741a5b5a1851508a3ce5c2d8eedc23": {
     "describe": {
@@ -444,6 +417,33 @@
       }
     },
     "query": "INSERT INTO ignored_rooms (mxid, room_id) VALUES ($1, $2)"
+  },
+  "e07149a8c256665c17632d76cd817a7e6e55149b12a4489f23b2b95e11cc2248": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "DELETE FROM members WHERE mxid = $1 AND name = $2;"
+  },
+  "e8682f4784e0eba5f489ed027522c494487c2d5986c5ce37013655fdbce9ea8d": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE members SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2"
   },
   "f16c64ed3d2565d725ef0b4eca4cfc871a5435e281756a7a0b3a7464b9ebd7e4": {
     "describe": {

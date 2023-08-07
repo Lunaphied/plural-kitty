@@ -5,7 +5,7 @@ INSERT INTO users
 VALUES
 ('@test:test.local');
 
-INSERT INTO identities
+INSERT INTO members
 (mxid, name, display_name, activators, track_account)
 VALUES
 ('@test:test.local', 'meow', 'Meow Kitty', '{"m"}', false),

@@ -1,9 +1,9 @@
 CREATE TABLE IF NOT EXISTS users (
     mxid                     TEXT PRIMARY KEY,
-    current_ident            TEXT
+    current_fronter           TEXT
 );
 
-CREATE TABLE IF NOT EXISTS identities (
+CREATE TABLE IF NOT EXISTS members (
     mxid            TEXT,
     name            TEXT,
     display_name    TEXT,

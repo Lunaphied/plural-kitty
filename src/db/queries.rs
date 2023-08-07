@@ -64,9 +64,9 @@ pub async fn get_users() -> sqlx::Result<Vec<String>> {
         .await
 }
 
-pub async fn create_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
+pub async fn create_member(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "INSERT INTO identities (mxid, name) VALUES ($1, $2);",
+        "INSERT INTO members (mxid, name) VALUES ($1, $2);",
         mxid,
         name
     )
@@ -75,16 +75,16 @@ pub async fn create_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
     .map(|_| ())
 }
 
-pub async fn remove_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
+pub async fn remove_member(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "DELETE FROM identities WHERE mxid = $1 AND name = $2;",
+        "DELETE FROM members WHERE mxid = $1 AND name = $2;",
         mxid,
         name
     )
     .execute(&*PK_POOL)
     .await?;
     sqlx::query!(
-        "UPDATE users SET current_ident = null WHERE mxid = $1 AND current_ident = $2;",
+        "UPDATE users SET current_fronter = null WHERE mxid = $1 AND current_fronter = $2;",
         mxid,
         name
     )
@@ -95,7 +95,7 @@ pub async fn remove_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
 
 pub async fn add_display_name(mxid: &str, name: &str, display_name: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET display_name = $3 WHERE mxid = $1 AND name = $2;",
+        "UPDATE members SET display_name = $3 WHERE mxid = $1 AND name = $2;",
         mxid,
         name,
         display_name
@@ -107,7 +107,7 @@ pub async fn add_display_name(mxid: &str, name: &str, display_name: &str) -> sql
 
 pub async fn remove_display_name(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET display_name = null WHERE mxid = $1 AND name = $2;",
+        "UPDATE members SET display_name = null WHERE mxid = $1 AND name = $2;",
         mxid,
         name
     )
@@ -118,7 +118,7 @@ pub async fn remove_display_name(mxid: &str, name: &str) -> sqlx::Result<()> {
 
 pub async fn add_avatar(mxid: &str, name: &str, avatar: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET avatar = $3 WHERE mxid = $1 AND name = $2;",
+        "UPDATE members SET avatar = $3 WHERE mxid = $1 AND name = $2;",
         mxid,
         name,
         avatar
@@ -130,7 +130,7 @@ pub async fn add_avatar(mxid: &str, name: &str, avatar: &str) -> sqlx::Result<()
 
 pub async fn remove_avatar(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET avatar = null WHERE mxid = $1 AND name = $2;",
+        "UPDATE members SET avatar = null WHERE mxid = $1 AND name = $2;",
         mxid,
         name
     )
@@ -141,7 +141,7 @@ pub async fn remove_avatar(mxid: &str, name: &str) -> sqlx::Result<()> {
 
 pub async fn add_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2",
+        "UPDATE members SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2",
         mxid,
         name,
         activator
@@ -153,7 +153,7 @@ pub async fn add_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Res
 
 pub async fn remove_activator(mxid: &str, name: &str, activator: &str) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE identities SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2",
+        "UPDATE members SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2",
         mxid,
         name,
         activator
@@ -163,9 +163,9 @@ pub async fn remove_activator(mxid: &str, name: &str, activator: &str) -> sqlx::
     Ok(())
 }
 
-pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
+pub async fn member_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
     sqlx::query!(
-        "SELECT 1 as x FROM identities WHERE mxid = $1 AND name = $2;",
+        "SELECT 1 as x FROM members WHERE mxid = $1 AND name = $2;",
         mxid,
         name
     )
@@ -174,10 +174,10 @@ pub async fn identity_exists(mxid: &str, name: &str) -> sqlx::Result<bool> {
     .map(|res| res.is_some())
 }
 
-pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
+pub async fn get_member(mxid: &str, name: &str) -> sqlx::Result<Member> {
     sqlx::query_as!(
-        Identity,
-        "SELECT * FROM identities WHERE mxid = $1 AND name = $2",
+        Member,
+        "SELECT * FROM members WHERE mxid = $1 AND name = $2",
         mxid,
         name
     )
@@ -185,15 +185,15 @@ pub async fn get_identity(mxid: &str, name: &str) -> sqlx::Result<Identity> {
     .await
 }
 
-pub async fn list_identities(mxid: &str) -> sqlx::Result<Vec<String>> {
-    sqlx::query_scalar!("SELECT name FROM identities WHERE mxid = $1;", mxid)
+pub async fn list_members(mxid: &str) -> sqlx::Result<Vec<String>> {
+    sqlx::query_scalar!("SELECT name FROM members WHERE mxid = $1;", mxid)
         .fetch_all(&*PK_POOL)
         .await
 }
 
-pub async fn set_current_identity(mxid: &str, name: Option<&str>) -> sqlx::Result<()> {
+pub async fn set_current_fronter(mxid: &str, name: Option<&str>) -> sqlx::Result<()> {
     sqlx::query!(
-        "UPDATE users SET current_ident = $2 WHERE mxid = $1;",
+        "UPDATE users SET current_fronter = $2 WHERE mxid = $1;",
         mxid,
         name
     )
@@ -202,43 +202,43 @@ pub async fn set_current_identity(mxid: &str, name: Option<&str>) -> sqlx::Resul
     Ok(())
 }
 
-pub async fn get_current_indentity(mxid: &str) -> anyhow::Result<Option<Identity>> {
+pub async fn get_current_fronter(mxid: &str) -> anyhow::Result<Option<Member>> {
     sqlx::query_as!(
-        Identity,
+        Member,
         r#"
         SELECT
-            i.mxid AS mxid,
-            i.name AS name, 
-            i.display_name AS display_name,
-            i.avatar AS avatar,
-            i.activators AS activators,
-            i.track_account AS track_account
+            m.mxid AS mxid,
+            m.name AS name, 
+            m.display_name AS display_name,
+            m.avatar AS avatar,
+            m.activators AS activators,
+            m.track_account AS track_account
         FROM users AS u 
-            JOIN identities AS i ON u.mxid = i.mxid AND u.current_ident = i.name
+            JOIN members AS m ON u.mxid = m.mxid AND u.current_fronter = m.name
         WHERE u.mxid = $1
         "#,
         mxid
     )
     .fetch_optional(&*PK_POOL)
     .await
-    .context("Error getting current_ident")
+    .context("Error getting current_fronter")
 }
 
-pub async fn set_identity_from_activator(
+pub async fn set_fronter_from_activator(
     mxid: &str,
     activator: &str,
 ) -> sqlx::Result<Option<String>> {
     sqlx::query_scalar!(
         r#"
         UPDATE users
-        SET current_ident = sub.name
+        SET current_fronter = sub.name
         FROM (
             SELECT name
-            FROM identities
+            FROM members
             WHERE mxid = $1 AND $2 = ANY(activators)
         ) AS sub
         WHERE mxid = $1
-        RETURNING current_ident AS "name!"
+        RETURNING current_fronter AS "name!"
     "#,
         mxid,
         activator
@@ -247,10 +247,10 @@ pub async fn set_identity_from_activator(
     .await
 }
 
-pub async fn update_tracking_ident(mxid: &str, profile: &ProfileInfo) -> sqlx::Result<()> {
+pub async fn update_tracking_member(mxid: &str, profile: &ProfileInfo) -> sqlx::Result<()> {
     sqlx::query!(
         r#"
-        UPDATE identities
+        UPDATE members
         SET 
             display_name = $2,
             avatar = $3
@@ -268,7 +268,7 @@ pub async fn update_tracking_ident(mxid: &str, profile: &ProfileInfo) -> sqlx::R
 
 pub async fn toggle_tracking(mxid: &str, name: &str) -> sqlx::Result<bool> {
     sqlx::query_scalar!(
-        "UPDATE identities SET track_account = NOT track_account
+        "UPDATE members SET track_account = NOT track_account
         WHERE mxid = $1 AND name = $2 RETURNING track_account",
         mxid,
         name

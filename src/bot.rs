@@ -167,7 +167,7 @@ async fn update_tracking_idents() -> anyhow::Result<Vec<anyhow::Error>> {
 
 async fn update_user_tracking_idents(mxid: &str) -> anyhow::Result<()> {
     let profile = queries::get_synapse_profile(mxid).await?;
-    queries::update_tracking_ident(mxid, &profile)
+    queries::update_tracking_member(mxid, &profile)
         .await
         .with_context(|| format!("Error updating info for {mxid}"))?;
     Ok(())

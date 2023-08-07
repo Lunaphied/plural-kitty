@@ -77,9 +77,9 @@ async fn update_indentity(
         }
     };
 
-    if let Some(identity) = queries::get_current_indentity(&user_id)
+    if let Some(member) = queries::get_current_fronter(&user_id)
         .await
-        .context("Error getting user's current identity")?
+        .context("Error getting user's current member")?
     {
         if queries::is_room_ignored(&user_id, &room_id).await? {
             tracing::debug!("Message in ignored room");
@@ -126,7 +126,7 @@ async fn update_indentity(
 
         let mut changed = false;
 
-        match (identity.display_name, &join_event.displayname) {
+        match (member.display_name, &join_event.displayname) {
             (Some(ident_name), Some(curr_name)) if ident_name != *curr_name => {
                 join_event.displayname = Some(ident_name);
                 changed = true;
@@ -137,7 +137,7 @@ async fn update_indentity(
             }
             _ => {}
         }
-        match (identity.avatar, &join_event.avatar_url) {
+        match (member.avatar, &join_event.avatar_url) {
             (Some(ident_avatar), Some(curr_avatar)) if ident_avatar != *curr_avatar => {
                 join_event.avatar_url = Some(ident_avatar.into());
                 changed = true;

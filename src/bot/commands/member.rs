@@ -36,7 +36,7 @@ pub async fn exec(
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
             "avatar" | "av" => add_avatar(cmd, room, user, &name, event).await?,
             "trackaccount" | "ta" => toggle_track_acc(room, user, &name).await?,
-            "show" => show_identity(room, user, &name).await?,
+            "show" => show_member(room, user, &name).await?,
             "remove" => remove_ident(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
@@ -47,7 +47,7 @@ pub async fn exec(
 async fn new_ident(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result<()> {
     let name = cmd.pop_word().ok_or_else(|| anyhow!("Give name plz"))?;
     queries::create_user(user.as_str()).await?;
-    queries::create_identity(user.as_str(), &name).await?;
+    queries::create_member(user.as_str(), &name).await?;
     room.send(
         RoomMessageEventContent::text_markdown(format!("Created idenity `{name}`")),
         None,
@@ -57,7 +57,7 @@ async fn new_ident(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result
 }
 
 async fn remove_ident(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
-    queries::remove_identity(user.as_str(), name).await?;
+    queries::remove_member(user.as_str(), name).await?;
     room.send(
         RoomMessageEventContent::text_markdown(format!("Removed idenity `{name}`")),
         None,
@@ -164,8 +164,8 @@ async fn add_avatar(
     Ok(())
 }
 
-async fn show_identity(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
-    let idenity = queries::get_identity(user.as_str(), name).await?;
+async fn show_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+    let idenity = queries::get_member(user.as_str(), name).await?;
     let message = format!(
         "## {}\n\n---\n\nDisplay name: {}\n\nAvatar: `{}`\n\nActivators: `{}`",
         idenity.name,
@@ -187,7 +187,7 @@ async fn activator_cmd(
     let sub_command = cmd
         .pop_word()
         .ok_or_else(|| anyhow!("Please specify a sub-command"))?;
-    if !queries::identity_exists(user.as_str(), name).await? {
+    if !queries::member_exists(user.as_str(), name).await? {
         bail!("Member {name} does not exist");
     }
     match sub_command.as_str() {

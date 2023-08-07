@@ -126,7 +126,7 @@ pub async fn dm_handler(
                             room.send(content, None).await?;
                         }
                     }
-                } else if let Some(name) = queries::set_identity_from_activator(
+                } else if let Some(name) = queries::set_fronter_from_activator(
                     event.sender.as_str(),
                     &word.to_lowercase(),
                 )

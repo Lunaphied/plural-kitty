@@ -1,4 +1,4 @@
-pub struct Identity {
+pub struct Member {
     pub mxid: String,
     pub name: String,
     pub display_name: Option<String>,
