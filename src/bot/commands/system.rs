@@ -34,6 +34,14 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
         }
         msg += "\n";
     }
+    let current_fronter = queries::get_current_indentity(user.as_str())
+        .await
+        .with_context(|| format!("Error getting current fronter for {user}"))?;
+    if let Some(current_fronter) = current_fronter {
+        msg += &format!("\n**Current fronter: {}**", current_fronter.name);
+    } else {
+        msg += "\n**No current fronter**";
+    }
     room.send(RoomMessageEventContent::text_markdown(msg), None)
         .await
         .context("Error sending reply")?;
