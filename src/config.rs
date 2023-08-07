@@ -43,7 +43,6 @@ impl BotInfo {
 #[derive(Deserialize)]
 pub struct SynapseInfo {
     pub host: String,
-    pub public_hs_url: String,
     pub db: DbInfo,
 }
 
