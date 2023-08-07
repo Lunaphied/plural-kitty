@@ -26,6 +26,8 @@ const HELP: &str = r#"
 Plural Kitty is a tool that allows users to manage and switch plural identies on Matrix,
 similar to Plural Kit for Discord.
 
+**Plural Kitty is alpha software so expect alpha quality. Only intended for use by testers at this time.**
+
 - To start using Plural Kitty create a system member: `!member new [member name]`
 - You can set a display name like this: `!member [member name] displayname [name]` 
 or `!m [member name] dn [display name]`.
