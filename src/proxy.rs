@@ -127,23 +127,23 @@ async fn update_indentity(
         let mut changed = false;
 
         match (member.display_name, &join_event.displayname) {
-            (Some(ident_name), Some(curr_name)) if ident_name != *curr_name => {
-                join_event.displayname = Some(ident_name);
+            (Some(member_name), Some(curr_name)) if member_name != *curr_name => {
+                join_event.displayname = Some(member_name);
                 changed = true;
             }
-            (Some(ident_name), None) => {
-                join_event.displayname = Some(ident_name);
+            (Some(member_name), None) => {
+                join_event.displayname = Some(member_name);
                 changed = true;
             }
             _ => {}
         }
         match (member.avatar, &join_event.avatar_url) {
-            (Some(ident_avatar), Some(curr_avatar)) if ident_avatar != *curr_avatar => {
-                join_event.avatar_url = Some(ident_avatar.into());
+            (Some(member_avatar), Some(curr_avatar)) if member_avatar != *curr_avatar => {
+                join_event.avatar_url = Some(member_avatar.into());
                 changed = true;
             }
-            (Some(ident_avatar), None) => {
-                join_event.avatar_url = Some(ident_avatar.into());
+            (Some(member_avatar), None) => {
+                join_event.avatar_url = Some(member_avatar.into());
                 changed = true;
             }
             _ => {}

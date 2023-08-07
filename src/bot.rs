@@ -81,7 +81,7 @@ pub async fn init() -> anyhow::Result<()> {
     // initial sync will be skipped in favor of loading state from the store
     tokio::spawn(async {
         tracing::info!("Updating tracking members");
-        match update_tracking_idents().await {
+        match update_tracking_members().await {
             Ok(err) => {
                 for e in err {
                     tracing::error!("{e:#}");
@@ -135,7 +135,7 @@ pub async fn init() -> anyhow::Result<()> {
         |event: OriginalSyncRoomMemberEvent, room: Room| async move {
             if let Room::Joined(_) = room {
                 tracing::debug!("Profile updated maybe");
-                if let Err(e) = update_user_tracking_idents(event.sender.as_str()).await {
+                if let Err(e) = update_user_tracking_members(event.sender.as_str()).await {
                     tracing::error!("Error updating info for {}: {e:#}", event.sender);
                 }
             }
@@ -148,14 +148,14 @@ pub async fn init() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn update_tracking_idents() -> anyhow::Result<Vec<anyhow::Error>> {
+async fn update_tracking_members() -> anyhow::Result<Vec<anyhow::Error>> {
     let mut errs = vec![];
     for user in queries::get_users()
         .await
         .context("Error getting user list")?
     {
         tracing::debug!("Updating tracking for {user}");
-        if let Err(e) = update_user_tracking_idents(&user)
+        if let Err(e) = update_user_tracking_members(&user)
             .await
             .with_context(|| format!("Error updating tracking members for {user}"))
         {
@@ -165,7 +165,7 @@ async fn update_tracking_idents() -> anyhow::Result<Vec<anyhow::Error>> {
     Ok(errs)
 }
 
-async fn update_user_tracking_idents(mxid: &str) -> anyhow::Result<()> {
+async fn update_user_tracking_members(mxid: &str) -> anyhow::Result<()> {
     let profile = queries::get_synapse_profile(mxid).await?;
     queries::update_tracking_member(mxid, &profile)
         .await

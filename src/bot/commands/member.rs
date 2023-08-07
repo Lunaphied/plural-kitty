@@ -25,7 +25,7 @@ pub async fn exec(
     let user = &event.sender;
     let first_arg = cmd.pop_word().ok_or_else(|| anyhow!("More args plz"))?;
     if first_arg == "new" {
-        new_ident(cmd, room, user).await?;
+        new_member(cmd, room, user).await?;
     } else {
         let name = first_arg;
         let sub_command = cmd
@@ -37,29 +37,29 @@ pub async fn exec(
             "avatar" | "av" => add_avatar(cmd, room, user, &name, event).await?,
             "trackaccount" | "ta" => toggle_track_acc(room, user, &name).await?,
             "show" => show_member(room, user, &name).await?,
-            "remove" => remove_ident(room, user, &name).await?,
+            "remove" => remove_member(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
     }
     Ok(vec![])
 }
 
-async fn new_ident(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result<()> {
+async fn new_member(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result<()> {
     let name = cmd.pop_word().ok_or_else(|| anyhow!("Give name plz"))?;
     queries::create_user(user.as_str()).await?;
     queries::create_member(user.as_str(), &name).await?;
     room.send(
-        RoomMessageEventContent::text_markdown(format!("Created idenity `{name}`")),
+        RoomMessageEventContent::text_markdown(format!("Created member `{name}`")),
         None,
     )
     .await?;
     Ok(())
 }
 
-async fn remove_ident(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+async fn remove_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
     queries::remove_member(user.as_str(), name).await?;
     room.send(
-        RoomMessageEventContent::text_markdown(format!("Removed idenity `{name}`")),
+        RoomMessageEventContent::text_markdown(format!("Removed member `{name}`")),
         None,
     )
     .await?;
@@ -165,13 +165,13 @@ async fn add_avatar(
 }
 
 async fn show_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
-    let idenity = queries::get_member(user.as_str(), name).await?;
+    let member = queries::get_member(user.as_str(), name).await?;
     let message = format!(
         "## {}\n\n---\n\nDisplay name: {}\n\nAvatar: `{}`\n\nActivators: `{}`",
-        idenity.name,
-        idenity.display_name.as_deref().unwrap_or("`not set`"),
-        idenity.avatar.as_deref().unwrap_or("not set"),
-        idenity.activators.join(", "),
+        member.name,
+        member.display_name.as_deref().unwrap_or("`not set`"),
+        member.avatar.as_deref().unwrap_or("not set"),
+        member.activators.join(", "),
     );
     room.send(RoomMessageEventContent::text_markdown(message), None)
         .await?;
