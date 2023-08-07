@@ -43,6 +43,7 @@ or `!m [member name] av !clear`.
 
 To switch to a member you must also set one or more activators for that member. Activators are
 short text strings that you can type in this DM to switch to the corresponding member.
+Activators are case insensitive.
 
 - You can add an activator like this: `!member [member name] activator add [activator string]` or
 `!m [name] act add [activator string]`
@@ -112,10 +113,12 @@ pub async fn dm_handler(
                             room.send(content, None).await?;
                         }
                     }
-                } else if let Some(name) =
-                    queries::set_identity_from_activator(event.sender.as_str(), &word)
-                        .await
-                        .context("Error updating current member")?
+                } else if let Some(name) = queries::set_identity_from_activator(
+                    event.sender.as_str(),
+                    &word.to_lowercase(),
+                )
+                .await
+                .context("Error updating current member")?
                 {
                     room.send(
                         RoomMessageEventContent::text_markdown(format!(

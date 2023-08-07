@@ -196,7 +196,7 @@ async fn activator_cmd(
                 anyhow!(
                     "!member [member] activator add needs the activation sequence as an arquement"
                 )
-            })?;
+            })?.to_lowercase();
             if activator.starts_with('!') {
                 bail!("activation sequence cannot start with `!`");
             }
