@@ -71,7 +71,7 @@ async fn add_display_name(
     user: &UserId,
     name: &str,
 ) -> anyhow::Result<()> {
-    let display_name = cmd.into_string();
+    let mut display_name = cmd.into_string();
     if display_name.is_empty() {
         bail!("Giv name plz");
     }
@@ -83,6 +83,9 @@ async fn add_display_name(
         )
         .await?;
     } else {
+        if display_name.as_str() == "!acc" {
+            display_name = queries::get_synapse_profile(user.as_str()).await?.display_name;
+        }
         queries::add_display_name(user.as_str(), name, &display_name).await?;
         room.send(
             RoomMessageEventContent::text_markdown(format!("Set display name to `{display_name}`")),
@@ -103,13 +106,21 @@ async fn add_avatar(
     if let Some(word) = cmd.pop_word() {
         if word.as_str() == "!clear" {
             queries::remove_avatar(user.as_str(), name).await?;
-            return Ok(());
-        } else if word.starts_with("mxc://") {
+        } else if word.as_str() == "!acc" {
+            let profile = queries::get_synapse_profile(user.as_str()).await?;
+            queries::add_avatar(user.as_str(), name, &profile.avatar).await?;
+        } 
+        else if word.starts_with("mxc://") {
             queries::add_avatar(user.as_str(), name, &word).await?;
-            return Ok(());
+        } else {
+            bail!("Unkown argument `{word}`, must be `!clear`, `!acc`, or an mxc url");
         }
-    }
-    if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
+        room.send(
+            RoomMessageEventContent::text_markdown(format!("Updated avatar")),
+            None,
+        )
+        .await?;
+    } else if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
             MessageLikeEvent::Original(OriginalMessageLikeEvent { 
                 content: RoomMessageEventContent { msgtype: MessageType::Image(image_event), .. }, .. 

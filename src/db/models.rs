@@ -7,3 +7,10 @@ pub struct Identity {
     pub track_account: bool,
 }
 
+#[derive(sqlx::FromRow)]
+pub struct ProfileInfo {
+    #[sqlx(rename = "displayname")]
+    pub display_name: String,
+    #[sqlx(rename = "avatar_url")]
+    pub avatar: String,
+}

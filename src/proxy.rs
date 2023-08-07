@@ -3,7 +3,7 @@ use axum::{
     extract::{Path, State},
     headers::{authorization::Bearer, Authorization},
     http::{uri::Uri, Request, Response},
-    routing::{post, put},
+    routing::put,
     Router, TypedHeader,
 };
 use hyper::{client::HttpConnector, Body, StatusCode};
@@ -12,8 +12,10 @@ use matrix_sdk::ruma::{
     events::{room::member::RoomMemberEventContent, AnyStateEventContent, StateEventType},
     OwnedRoomId,
 };
-use sqlx::{postgres::PgPoolOptions, Pool, Postgres, Row};
-use std::{collections::HashMap, sync::{Arc, atomic::AtomicBool}};
+use std::{
+    collections::HashMap,
+    sync::{atomic::AtomicBool, Arc},
+};
 use tokio::sync::{Mutex, RwLock};
 
 use crate::{config::CONFIG, db::queries};
@@ -21,7 +23,6 @@ use crate::{config::CONFIG, db::queries};
 #[derive(Debug, Clone)]
 struct AppState {
     client: HttpClient,
-    pool: Pool<Postgres>,
     user_ids: Arc<RwLock<HashMap<String, String>>>,
     update_locks: Arc<RwLock<HashMap<String, Arc<Mutex<()>>>>>,
 }
@@ -33,15 +34,8 @@ pub static STARTED: AtomicBool = AtomicBool::new(false);
 #[tokio::main]
 pub async fn init() -> anyhow::Result<()> {
     let client = HttpClient::new();
-    let db_opts = CONFIG.synapse.db.db_con_opts().await?;
-    let pool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect_with(db_opts.clone())
-        .await
-        .context(format!("Error connection to DB at `{db_opts:?}`"))?;
     let state = AppState {
         client,
-        pool,
         user_ids: Default::default(),
         update_locks: Default::default(),
     };
@@ -50,12 +44,6 @@ pub async fn init() -> anyhow::Result<()> {
         .route(
             "/_matrix/client/:version/rooms/:room_id/send/:event_type/:txn_id",
             put(msg_send_handler).options(passthrough_handler),
-        )
-        .route(
-            "/_matrix/client/:version/login",
-            post(login_handler)
-                .options(passthrough_handler)
-                .get(passthrough_handler),
         )
         .fallback(passthrough_handler)
         .with_state(state);
@@ -71,7 +59,6 @@ pub async fn init() -> anyhow::Result<()> {
 async fn update_indentity(
     AppState {
         client,
-        pool,
         user_ids,
         update_locks,
     }: &AppState,
@@ -83,12 +70,7 @@ async fn update_indentity(
         Some(user_id) => user_id.clone(),
         None => {
             drop(read_lock);
-            let user_id = sqlx::query("SELECT user_id FROM access_tokens WHERE token = $1")
-                .bind(auth.token())
-                .map(|row| row.get::<String, usize>(0))
-                .fetch_one(pool)
-                .await
-                .context("Error getting user from auth token")?;
+            let user_id = queries::get_synapse_user(auth.token()).await?;
             let mut write_lock = user_ids.write().await;
             write_lock.insert(auth.token().to_owned(), user_id.clone());
             user_id
@@ -181,33 +163,6 @@ async fn update_indentity(
     Ok(())
 }
 
-async fn replace_login(resp: Response<Body>) -> anyhow::Result<Response<Body>> {
-    if !resp.status().is_success() {
-        tracing::debug!("login request returned error");
-        return Ok(resp);
-    }
-    tracing::info!(
-        "Setting HS in login request to {}",
-        CONFIG.synapse.public_hs_url
-    );
-    let (header, body) = resp.into_parts();
-    let body_bytes = hyper::body::to_bytes(body)
-        .await
-        .context("Error receiving login response")?;
-    let mut body_json: serde_json::Value =
-        serde_json::from_slice(&body_bytes).context("login response not a json object")?;
-    body_json
-        .as_object_mut()
-        .ok_or_else(|| anyhow::anyhow!("login response not a json object"))?
-        .insert(
-            "home_server".to_owned(),
-            CONFIG.synapse.public_hs_url.clone().into(),
-        );
-    let new_body_bytes =
-        serde_json::to_vec(&body_json).context("Error serializing login response")?;
-    Ok(Response::from_parts(header, Body::from(new_body_bytes)))
-}
-
 async fn passthrough(
     client: &HttpClient,
     mut req: Request<Body>,
@@ -242,32 +197,6 @@ async fn msg_send_handler(
         Ok(resp) => resp,
         Err(e) => {
             tracing::error!("Error doing pass through to matrix server");
-            Response::builder()
-                .status(StatusCode::INTERNAL_SERVER_ERROR)
-                .body(format!("{e:#}").into())
-                .unwrap()
-        }
-    }
-}
-
-async fn login_handler(
-    State(state): State<AppState>,
-    Path(_version): Path<String>,
-    req: Request<Body>,
-) -> Response<Body> {
-    match passthrough(&state.client, req).await {
-        Ok(resp) => match replace_login(resp).await {
-            Ok(resp) => dbg!(resp),
-            Err(e) => {
-                tracing::error!("Error modifying login response: {e:#}");
-                Response::builder()
-                    .status(StatusCode::INTERNAL_SERVER_ERROR)
-                    .body(format!("{e:#}").into())
-                    .unwrap()
-            }
-        },
-        Err(e) => {
-            tracing::error!("Error doing pass through to matrix server: {e:#}");
             Response::builder()
                 .status(StatusCode::INTERNAL_SERVER_ERROR)
                 .body(format!("{e:#}").into())
