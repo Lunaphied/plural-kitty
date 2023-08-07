@@ -1,0 +1,11 @@
+#!/bin/sh
+
+if [ -e .commit ]; then
+    rm .commit
+    cargo sqlx prepare
+    if ! [ -z "$(git status --porcelain sqlx-data.json)" ]; then
+        git add sqlx-data.json
+        git commit --amend -C HEAD --no-verify
+    fi
+fi
+
