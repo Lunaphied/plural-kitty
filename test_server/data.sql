@@ -6,9 +6,10 @@ VALUES
 ('@test:test.local');
 
 INSERT INTO identities
-(mxid, name, display_name, activators)
+(mxid, name, display_name, activators, track_account)
 VALUES
-('@test:test.local', 'meow', 'Meow Kitty', '{"m"}'),
-('@test:test.local', 'beep', 'Beep Boop', '{"b"}');
+('@test:test.local', 'meow', 'Meow Kitty', '{"m"}', false),
+('@test:test.local', 'beep', 'Beep Boop', '{"b"}', false),
+('@test:test.local', 'test', '', '{"t"}', true);
 
 COMMIT;

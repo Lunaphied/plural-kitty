@@ -18,7 +18,9 @@ pub async fn init() -> anyhow::Result<()> {
         .max_connections(5)
         .connect_with(db_opts.clone())
         .await
-        .context(format!("Error connection to plural kitty DB at `{db_opts:?}`"))?;
+        .context(format!(
+            "Error connection to plural kitty DB at `{db_opts:?}`"
+        ))?;
     sqlx::migrate!().run(&pool).await?;
     PK_POOL.init(pool);
     let db_opts = CONFIG.synapse.db.db_con_opts().await?;

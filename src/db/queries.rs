@@ -58,6 +58,12 @@ pub async fn create_user(mxid: &str) -> sqlx::Result<bool> {
     .map(|res| res.rows_affected() > 0)
 }
 
+pub async fn get_users() -> sqlx::Result<Vec<String>> {
+    sqlx::query_scalar!("SELECT mxid FROM users")
+        .fetch_all(&*PK_POOL)
+        .await
+}
+
 pub async fn create_identity(mxid: &str, name: &str) -> sqlx::Result<()> {
     sqlx::query!(
         "INSERT INTO identities (mxid, name) VALUES ($1, $2);",
@@ -238,5 +244,35 @@ pub async fn set_identity_from_activator(
         activator
     )
     .fetch_optional(&*PK_POOL)
+    .await
+}
+
+pub async fn update_tracking_ident(mxid: &str, profile: &ProfileInfo) -> sqlx::Result<()> {
+    sqlx::query!(
+        r#"
+        UPDATE identities
+        SET 
+            display_name = $2,
+            avatar = $3
+        WHERE mxid = $1
+        AND track_account = TRUE
+    "#,
+        mxid,
+        profile.display_name,
+        profile.avatar
+    )
+    .execute(&*PK_POOL)
+    .await?;
+    Ok(())
+}
+
+pub async fn toggle_tracking(mxid: &str, name: &str) -> sqlx::Result<bool> {
+    sqlx::query_scalar!(
+        "UPDATE identities SET track_account = NOT track_account
+        WHERE mxid = $1 AND name = $2 RETURNING track_account",
+        mxid,
+        name
+    )
+    .fetch_one(&*PK_POOL)
     .await
 }

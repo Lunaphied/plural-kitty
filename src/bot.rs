@@ -5,12 +5,14 @@ use std::{sync::atomic::AtomicBool, time::Duration};
 
 use anyhow::{anyhow, Context};
 use matrix_sdk::{
-    config::SyncSettings, room::Room, ruma::events::room::member::StrippedRoomMemberEvent, Client,
-    Session,
+    config::SyncSettings,
+    room::Room,
+    ruma::events::room::member::{OriginalSyncRoomMemberEvent, StrippedRoomMemberEvent},
+    Client, Session,
 };
 use tokio::time::sleep;
 
-use crate::config::CONFIG;
+use crate::{config::CONFIG, db::queries};
 
 pub static STARTED: AtomicBool = AtomicBool::new(false);
 
@@ -77,11 +79,25 @@ pub async fn init() -> anyhow::Result<()> {
     // An initial sync to set up state and so our bot doesn't respond to old
     // messages. If the `StateStore` finds saved state in the location given the
     // initial sync will be skipped in favor of loading state from the store
+    tokio::spawn(async {
+        tracing::info!("Updating tracking members");
+        match update_tracking_idents().await {
+            Ok(err) => {
+                for e in err {
+                    tracing::error!("{e:#}");
+                }
+            }
+            Err(e) => tracing::error!("Error updating tracking members: {e:#}"),
+        }
+    });
     let response = client
         .sync_once(SyncSettings::default())
         .await
         .context("Initial sync failed")?;
+    tracing::info!("Initial sync done");
+    // DM message handler
     client.add_event_handler(commands::dm_handler);
+    // Auto join room bot is invited to
     client.add_event_handler(
         |room_member: StrippedRoomMemberEvent, client: Client, room: Room| async move {
             if room_member.state_key != client.user_id().unwrap() {
@@ -115,10 +131,44 @@ pub async fn init() -> anyhow::Result<()> {
             }
         },
     );
-    tracing::info!("Initial sync done");
+    client.add_event_handler(
+        |event: OriginalSyncRoomMemberEvent, room: Room| async move {
+            if let Room::Joined(_) = room {
+                tracing::debug!("Profile updated maybe");
+                if let Err(e) = update_user_tracking_idents(event.sender.as_str()).await {
+                    tracing::error!("Error updating info for {}: {e:#}", event.sender);
+                }
+            }
+        },
+    );
     let settings = SyncSettings::default().token(response.next_batch);
     STARTED.store(true, std::sync::atomic::Ordering::SeqCst);
     client.sync(settings).await?;
 
+    Ok(())
+}
+
+async fn update_tracking_idents() -> anyhow::Result<Vec<anyhow::Error>> {
+    let mut errs = vec![];
+    for user in queries::get_users()
+        .await
+        .context("Error getting user list")?
+    {
+        tracing::debug!("Updating tracking for {user}");
+        if let Err(e) = update_user_tracking_idents(&user)
+            .await
+            .with_context(|| format!("Error updating tracking members for {user}"))
+        {
+            errs.push(e);
+        }
+    }
+    Ok(errs)
+}
+
+async fn update_user_tracking_idents(mxid: &str) -> anyhow::Result<()> {
+    let profile = queries::get_synapse_profile(mxid).await?;
+    queries::update_tracking_ident(mxid, &profile)
+        .await
+        .with_context(|| format!("Error updating info for {mxid}"))?;
     Ok(())
 }

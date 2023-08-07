@@ -35,6 +35,7 @@ pub async fn exec(
             "displayname" | "dn" => add_display_name(cmd, room, user, &name).await?,
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
             "avatar" | "av" => add_avatar(cmd, room, user, &name, event).await?,
+            "trackaccount" | "ta" => toggle_track_acc(room, user, &name).await?,
             "show" => show_identity(room, user, &name).await?,
             "remove" => remove_ident(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
@@ -84,7 +85,9 @@ async fn add_display_name(
         .await?;
     } else {
         if display_name.as_str() == "!acc" {
-            display_name = queries::get_synapse_profile(user.as_str()).await?.display_name;
+            display_name = queries::get_synapse_profile(user.as_str())
+                .await?
+                .display_name;
         }
         queries::add_display_name(user.as_str(), name, &display_name).await?;
         room.send(
@@ -109,8 +112,7 @@ async fn add_avatar(
         } else if word.as_str() == "!acc" {
             let profile = queries::get_synapse_profile(user.as_str()).await?;
             queries::add_avatar(user.as_str(), name, &profile.avatar).await?;
-        } 
-        else if word.starts_with("mxc://") {
+        } else if word.starts_with("mxc://") {
             queries::add_avatar(user.as_str(), name, &word).await?;
         } else {
             bail!("Unkown argument `{word}`, must be `!clear`, `!acc`, or an mxc url");
@@ -220,5 +222,21 @@ async fn activator_cmd(
         }
         unknown => bail!("Unkown sub-command `{unknown}`"),
     }
+    Ok(())
+}
+
+async fn toggle_track_acc(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+    let msg = if queries::toggle_tracking(user.as_str(), name)
+        .await
+        .context("Error toggling track account")?
+    {
+        "enabled"
+    } else {
+        "disabled"
+    };
+    let msg = format!("Tracking account {msg} for {name}");
+    room.send(RoomMessageEventContent::text_markdown(msg), None)
+        .await
+        .context("Error sending reply")?;
     Ok(())
 }
