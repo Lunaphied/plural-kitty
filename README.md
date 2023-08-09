@@ -27,7 +27,7 @@ Plural Kitty or any questions or issues, please ask about them in
 
 ### Generic Linux
 
-- Install Plural Kitty and run it as a service (see the [Packaging Guide](#Packaging Guide) below for help)
+- Install Plural Kitty and run it as a service (see the [Packaging Guide](#packaging-guide) below for help)
 - Configure Plural Kitty [(see example)](./docs/config-examples/example.yaml)
 - Configure your HTTP server to forwarded the message send endpoint to Plural Kitty [(example for Nginx)](./docs/config-examples/example-nginx.conf)
 
