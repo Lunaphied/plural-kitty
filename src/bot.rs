@@ -99,7 +99,7 @@ pub async fn create_client() -> anyhow::Result<Client> {
         }
     } else if let Some(secret_file_path) = &CONFIG.bot.secret_file {
         if CONFIG.bot.state_store.exists() {
-            Ok(load_prev_login(&secret_file_path).await?)
+            Ok(load_prev_login(secret_file_path).await?)
         } else {
             let password = tokio::fs::read_to_string(secret_file_path)
                 .await
@@ -109,7 +109,7 @@ pub async fn create_client() -> anyhow::Result<Client> {
                         secret_file_path.display()
                     )
                 })?;
-            Ok(new_login(&password, &secret_file_path).await?)
+            Ok(new_login(&password, secret_file_path).await?)
         }
     } else {
         let session_file_path = CONFIG.bot.session_file_path();

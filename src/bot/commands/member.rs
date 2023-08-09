@@ -118,7 +118,7 @@ async fn add_avatar(
             bail!("Unkown argument `{word}`, must be `!clear`, `!acc`, or an mxc url");
         }
         room.send(
-            RoomMessageEventContent::text_markdown(format!("Updated avatar")),
+            RoomMessageEventContent::text_plain("Updated avatar"),
             None,
         )
         .await?;

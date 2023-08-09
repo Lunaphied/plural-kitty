@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(dead_code)] // Some of the framework copied from Emily is not currently in use
 mod clear;
 mod ignore;
 mod member;
