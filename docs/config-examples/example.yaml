@@ -1,0 +1,20 @@
+listen: 127.0.0.1:4000 # socket address proxy should listen on
+synapse:
+  host: http://127.0.0.1:8008 # socket address of Synapse server for proxy
+  # DB login info for synapse database (can be mostly copied from Synapse config)
+  db:
+    user: synapse
+    password: beepboop
+    host: localhost
+    database: synapse
+bot:
+  user: '@pk:test.local' # Matrix user for Plural Kitty Bot
+  homeserver_url: http://127.0.0.1:8008 # socket address of Matrix server bot should connect to (probably same as above)
+  state_store: /var/lib/plural-kitty # Filesystem location to store bot's state database
+  secret_file: /var/secrets/pk-sscret.json # Location to store PK's session token
+  # DB login info for Plural Kitties database (you must create this database beforehand)
+  db:
+    user: plural_kitty
+    password: beepboop
+    host: localhost
+    database: plural_kitty

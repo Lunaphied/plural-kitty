@@ -1,0 +1,8 @@
+[Unit]
+After=network.target
+Description=Plural Kitty
+
+ExecStart=/usr/bin/plural-kitty /etc/plural-kitty.yaml
+User=plural-kitty
+Group=plural-kitty
+Restart=always

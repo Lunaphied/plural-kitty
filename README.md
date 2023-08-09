@@ -16,7 +16,36 @@ You can see a list of current major [TODO items here](./TODO.md). If you have an
 Plural Kitty or any questions or issues, please ask about them in 
 [#plural-kitty-dev:the-apothecary.club](https://matrix.to/#/#plural-kitty-dev:the-apothecary.club).
 
-## Devel setup
+## Deployment Setup
+
+### NixOS (recommend)
+
+- Add the Plural Kitty flake `plural-kitty.url = "git+https://codeberg.org/Apothecary/plural-kitty.git";`
+- Import the NixOS module `modules = [ plural-kitty.nixosModules.default .. ];`
+- Configure Plural Kitty [(see example)](./docs/config-examples/example.nix)
+- Configure your HTTP server to forwarded the message send endpoint to Plural Kitty [(example for Nginx)](./docs/config-examples/example-nginx.nix)
+
+### Generic Linux
+
+- Install Plural Kitty and run it as a service (see the [Packaging Guide](#Packaging Guide) below for help)
+- Configure Plural Kitty [(see example)](./docs/config-examples/example.yaml)
+- Configure your HTTP server to forwarded the message send endpoint to Plural Kitty [(example for Nginx)](./docs/config-examples/example-nginx.conf)
+
+## Packaging Guide
+
+To build Plural Kitty from source you will need:
+
+- rustc v1.70 or later and cargo
+- openssl development libraries
+- sqlite development libraries
+
+Download the source code then build it by running `cargo build -r`. The
+resulting binary will be located at `./target/release/plural-kitty`. Install
+the binary at an appropriate location. You should also create a service for
+Plural Kitty. An [example Systemd service](./docs/config-examples/example.plural-kitty.service)
+is provided.
+
+## Devel Setup
 
 Requirements:
 
