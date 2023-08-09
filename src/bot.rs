@@ -1,7 +1,7 @@
 mod commands;
 mod parser;
 
-use std::{sync::atomic::AtomicBool, time::Duration};
+use std::{path::Path, sync::atomic::AtomicBool, time::Duration};
 
 use anyhow::{anyhow, Context};
 use matrix_sdk::{
@@ -26,9 +26,7 @@ pub async fn create_client() -> anyhow::Result<Client> {
             .await
             .context("Error setting up client")
     }
-
-    let session_file_path = CONFIG.bot.session_file_path();
-    if session_file_path.exists() {
+    async fn load_prev_login(session_file_path: &Path) -> anyhow::Result<Client> {
         let session_json = tokio::fs::read(&session_file_path).await.with_context(|| {
             anyhow!("Error reading session file {}", session_file_path.display())
         })?;
@@ -44,16 +42,11 @@ pub async fn create_client() -> anyhow::Result<Client> {
             .await
             .context("Error logging in")?;
         Ok(client)
-    } else {
-        tracing::info!(
-            "Session file {} does not exist, prompting for password...",
-            session_file_path.display()
-        );
-        let pass = rpassword::prompt_password("Please entry Emily's matrix account password: ")
-            .context("Error reading Emily's password")?;
+    }
+    async fn new_login(password: &str, session_file_path: &Path) -> anyhow::Result<Client> {
         let client = client().await?;
         let session: Session = client
-            .login_username(CONFIG.bot.user.as_str(), &pass)
+            .login_username(CONFIG.bot.user.as_str(), password)
             .initial_device_display_name("Plural Relay")
             .send()
             .await
@@ -61,7 +54,7 @@ pub async fn create_client() -> anyhow::Result<Client> {
             .into();
         let session_json =
             serde_json::to_vec(&session).context("Error serializing session data")?;
-        tokio::fs::write(&session_file_path, session_json)
+        tokio::fs::write(session_file_path, session_json)
             .await
             .with_context(|| {
                 anyhow!(
@@ -70,6 +63,63 @@ pub async fn create_client() -> anyhow::Result<Client> {
                 )
             })?;
         Ok(client)
+    }
+
+    // if password file is set
+    //     if session file exist
+    //         load session from session file and run
+    //     else
+    //         login with password file
+    // if secret file set and exists
+    //     if state store exists
+    //         load session from secret file
+    //     else
+    //         load password from secret file and log in
+    //         save session to secret file
+    // else
+    //     if session file exists
+    //         load session from session file and run
+    //     else
+    //         interactive login
+
+    if let Some(password_file_apth) = &CONFIG.bot.password_file {
+        let session_file_path = CONFIG.bot.session_file_path();
+        if session_file_path.exists() {
+            Ok(load_prev_login(&session_file_path).await?)
+        } else {
+            let password = tokio::fs::read_to_string(password_file_apth)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Error reading password from file {}",
+                        password_file_apth.display()
+                    )
+                })?;
+            Ok(new_login(&password, &session_file_path).await?)
+        }
+    } else if let Some(secret_file_path) = &CONFIG.bot.secret_file {
+        if CONFIG.bot.state_store.exists() {
+            Ok(load_prev_login(&secret_file_path).await?)
+        } else {
+            let password = tokio::fs::read_to_string(secret_file_path)
+                .await
+                .with_context(|| {
+                    format!(
+                        "Error reading password from file {}",
+                        secret_file_path.display()
+                    )
+                })?;
+            Ok(new_login(&password, &secret_file_path).await?)
+        }
+    } else {
+        let session_file_path = CONFIG.bot.session_file_path();
+        if session_file_path.exists() {
+            Ok(load_prev_login(&session_file_path).await?)
+        } else {
+            let password = rpassword::prompt_password("Please entry Plutal Kitty's matrix account password: ")
+                .context("Error reading Plural Kitty's password from stdin. If you do not want interactive password login please set either password_file or secret_file in your config")?;
+            Ok(new_login(&password, &session_file_path).await?)
+        }
     }
 }
 

@@ -20,7 +20,8 @@ pub struct BotInfo {
     pub user: OwnedUserId,
     homeserver_url: Option<String>,
     pub state_store: PathBuf,
-    session_file: Option<PathBuf>,
+    pub secret_file: Option<PathBuf>,
+    pub password_file: Option<PathBuf>,
     pub db: DbInfo,
 }
 
@@ -33,7 +34,7 @@ impl BotInfo {
     }
 
     pub fn session_file_path(&self) -> PathBuf {
-        match &self.session_file {
+        match &self.secret_file {
             Some(path) => path.clone(),
             None => self.state_store.join("session.json"),
         }
