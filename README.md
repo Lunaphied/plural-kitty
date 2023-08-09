@@ -9,6 +9,13 @@ and if they do not, the proxy will set it before the message send is forwarded t
 
 Plural Kitty also has a bot that users DM to set up and change members.
 
+## Status
+
+Plural Kitty is still very much a work in progress and should be considered alpha software.
+You can see a list of current major [TODO items here](./TODO.md). If you have any ideas to improve
+Plural Kitty or any questions or issues, please ask about them in 
+[#plural-kitty-dev:the-apothecary.club](https://matrix.to/#/#plural-kitty-dev:the-apothecary.club).
+
 ## Devel setup
 
 Requirements:
@@ -38,4 +45,8 @@ Set up:
 - You can log in as `@test:test.local` with the password `test`.
 
 Ports `8000`, `8008`, `4000`, and `5432` will be used by default,
-make sure they're available on your system
+make sure they're available on your system.
+
+Also considered using out git hooks by running `ln -s ./.git_hooks ./.git/hooks`.
+These hooks will ensure everything stays up to date during development.
+
