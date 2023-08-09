@@ -69,6 +69,9 @@ You may not want Plural Kitty to change your name and avatar in certain rooms.
 !m sasha av     (this mesage is in reply to the image posted above)
 !m sasha act add s
 s               (switch to member sasha)
+
+For help and feature requests please refer to
+[#plural-kitty-dev:the-apothecary.club](https://matrix.to/#/#plural-kitty-dev:the-apothecary.club).
 ```
 "#;
 
