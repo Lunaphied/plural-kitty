@@ -80,7 +80,7 @@
                   RUST_LOG = cfg.logString;
                 };
                 serviceConfig = {
-                  ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "comfig.yaml" cfg.settings}";
+                  ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "config.yaml" cfg.settings}";
                   Restart = "always";
                   RestartSec = 5;
                   User = cfg.user;
