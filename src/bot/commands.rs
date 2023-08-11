@@ -130,12 +130,10 @@ pub async fn dm_handler(
                             room.send(content, None).await?;
                         }
                     }
-                } else if let Some(name) = queries::set_fronter_from_activator(
-                    event.sender.as_str(),
-                    &word.to_lowercase(),
-                )
-                .await
-                .context("Error updating current member")?
+                } else if let Some(name) =
+                    queries::set_fronter_from_activator(event.sender.as_str(), &word.to_lowercase())
+                        .await
+                        .context("Error updating current member")?
                 {
                     room.send(
                         RoomMessageEventContent::text_markdown(format!(
@@ -197,8 +195,8 @@ impl Handler {
                         tracing::error!("Error sending error reaction: {e}");
                     }
                     for e in errors {
-                        tracing::error!("Error in command handler: {e:?}");
-                        let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
+                        tracing::error!("Error in command handler: {e:#}");
+                        let content = RoomMessageEventContent::text_markdown(format!("{e}"));
                         if let Err(e) = self.room.send(content, None).await {
                             tracing::error!("Error sending error message: {e}");
                         }
@@ -206,13 +204,15 @@ impl Handler {
                 }
             }
             Err(e) => {
-                tracing::error!("Error in command handler: {e:?}");
+                tracing::error!("Error in command handler: {e:#}");
+                tracing::debug!("{e:#?}");
                 let content =
                     ReactionEventContent::new(Annotation::new(self.cmd_event_id, "❌".to_owned()));
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error reaction: {e}");
                 }
-                let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
+                tracing::info!("Printing: {e}");
+                let content = RoomMessageEventContent::text_markdown(format!("{e}"));
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error message: {e}");
                 }
@@ -232,8 +232,8 @@ impl Handler {
                         tracing::error!("Error sending error reaction: {e}");
                     }
                     for e in errors {
-                        tracing::error!("Error in command handler: {e:?}");
-                        let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
+                        tracing::error!("Error in command handler: {e:#}");
+                        let content = RoomMessageEventContent::text_plain(format!("{e}"));
                         if let Err(e) = self.room.send(content, None).await {
                             tracing::error!("Error sending error message: {e}");
                         }
@@ -241,8 +241,8 @@ impl Handler {
                 }
             }
             Err(e) => {
-                tracing::error!("Error in command handler: {e:?}");
-                let content = RoomMessageEventContent::text_plain(format!("{e:?}"));
+                tracing::error!("Error in command handler: {e:#}");
+                let content = RoomMessageEventContent::text_plain(format!("{e}"));
                 if let Err(e) = self.room.send(content, None).await {
                     tracing::error!("Error sending error message: {e}");
                 }

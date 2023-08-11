@@ -1,7 +1,7 @@
-use anyhow::Context;
+use anyhow::{Context, anyhow};
 use sqlx::Row;
 
-use super::models::*;
+use super::{models::*, DbError};
 use super::{PK_POOL, SYNAPSE_POOL};
 
 pub async fn get_synapse_user(access_token: &str) -> anyhow::Result<String> {
@@ -64,7 +64,7 @@ pub async fn get_users() -> sqlx::Result<Vec<String>> {
         .await
 }
 
-pub async fn create_member(mxid: &str, name: &str) -> sqlx::Result<()> {
+pub async fn create_member(mxid: &str, name: &str) -> anyhow::Result<()> {
     sqlx::query!(
         "INSERT INTO members (mxid, name) VALUES ($1, $2);",
         mxid,
@@ -73,6 +73,13 @@ pub async fn create_member(mxid: &str, name: &str) -> sqlx::Result<()> {
     .execute(&*PK_POOL)
     .await
     .map(|_| ())
+    .map_err(|e| {
+        if e.not_unique() {
+            anyhow!(e).context("This member name is already in use")
+        } else {
+            e.into()
+        }
+    })
 }
 
 pub async fn remove_member(mxid: &str, name: &str) -> sqlx::Result<()> {

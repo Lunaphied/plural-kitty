@@ -28,6 +28,11 @@ pub async fn exec(
         new_member(cmd, room, user).await?;
     } else {
         let name = first_arg;
+        if !queries::member_exists(user.as_str(), &name).await? {
+            bail!(
+                "Memeber {name} does not exist.\n\nYou can create this member with `!m new {name}`"
+            );
+        }
         let sub_command = cmd
             .pop_word()
             .ok_or_else(|| anyhow!("Please specify a subcommand"))?;
@@ -117,11 +122,8 @@ async fn add_avatar(
         } else {
             bail!("Unkown argument `{word}`, must be `!clear`, `!acc`, or an mxc url");
         }
-        room.send(
-            RoomMessageEventContent::text_plain("Updated avatar"),
-            None,
-        )
-        .await?;
+        room.send(RoomMessageEventContent::text_plain("Updated avatar"), None)
+            .await?;
     } else if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
             MessageLikeEvent::Original(OriginalMessageLikeEvent {

@@ -32,3 +32,13 @@ pub async fn init() -> anyhow::Result<()> {
     SYNAPSE_POOL.init(pool);
     Ok(())
 }
+
+pub trait DbError {
+    fn not_unique(&self) -> bool;
+}
+
+impl DbError for sqlx::Error {
+    fn not_unique(&self) -> bool {
+        matches!(self, sqlx::Error::Database(e) if e.code() == Some("23505".into()))
+    }
+}
