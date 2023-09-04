@@ -3,6 +3,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 
 use anyhow::Context;
+use matrix_sdk::ruma::OwnedMxcUri;
 use matrix_sdk::ruma::OwnedUserId;
 use once_cell::sync::Lazy;
 use serde::Deserialize;
@@ -23,6 +24,8 @@ pub struct BotInfo {
     pub secret_file: Option<PathBuf>,
     pub password_file: Option<PathBuf>,
     pub db: DbInfo,
+    pub display_name: Option<String>,
+    pub avatar: Option<OwnedMxcUri>,
 }
 
 impl BotInfo {

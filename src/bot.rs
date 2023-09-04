@@ -8,7 +8,7 @@ use matrix_sdk::{
     config::SyncSettings,
     room::Room,
     ruma::events::room::member::{OriginalSyncRoomMemberEvent, StrippedRoomMemberEvent},
-    Client, Session,
+    Account, Client, Session,
 };
 use tokio::time::sleep;
 
@@ -126,6 +126,12 @@ pub async fn create_client() -> anyhow::Result<Client> {
 #[tokio::main]
 pub async fn init() -> anyhow::Result<()> {
     let client = create_client().await.context("Error creating bot client")?;
+
+    // Update display name and avatar if needed
+    if let Err(e) = update_account_info(&client.account()).await {
+        tracing::error!("Error updating bot account info: {e:}");
+    }
+
     // An initial sync to set up state and so our bot doesn't respond to old
     // messages. If the `StateStore` finds saved state in the location given the
     // initial sync will be skipped in favor of loading state from the store
@@ -220,5 +226,29 @@ async fn update_user_tracking_members(mxid: &str) -> anyhow::Result<()> {
     queries::update_tracking_member(mxid, &profile)
         .await
         .with_context(|| format!("Error updating info for {mxid}"))?;
+    Ok(())
+}
+
+async fn update_account_info(account: &Account) -> anyhow::Result<()> {
+    let display_name = account
+        .get_display_name()
+        .await
+        .context("Error getting bot display name")?;
+    if CONFIG.bot.display_name.is_some() && CONFIG.bot.display_name != display_name {
+        account
+            .set_display_name(CONFIG.bot.display_name.as_deref())
+            .await
+            .context("Error setting bot display name")?;
+    }
+    let avatar = account
+        .get_avatar_url()
+        .await
+        .context("Error getting bot avatar")?;
+    if CONFIG.bot.avatar.is_some() && CONFIG.bot.avatar != avatar {
+        account
+            .set_avatar_url(CONFIG.bot.avatar.as_deref())
+            .await
+            .context("Error setting bot avatar")?;
+    }
     Ok(())
 }

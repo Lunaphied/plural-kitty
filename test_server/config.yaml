@@ -10,6 +10,7 @@ bot:
   user: '@pk:test.local'
   homeserver_url: http://127.0.0.1:8008
   state_store: ./test_server/data/state_store
+  display_name: 'Plural Kitty 💜'
   db:
     user: synapse
     password: beepboop
