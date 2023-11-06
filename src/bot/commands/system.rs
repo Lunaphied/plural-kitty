@@ -15,7 +15,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
     if members.is_empty() {
         room.send(
             RoomMessageEventContent::text_markdown(
-                "Your account has no system members yet. Create some using `!member new [name]`",
+                "This account has no system members yet. Create some using `!member new [name]`",
             ),
             None,
         )
@@ -23,7 +23,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
         .context("Error sending reply")?;
         return Ok(vec![]);
     }
-    let mut msg = "## System Members\n\n".to_owned();
+    let mut msg = "#### System Members\n\n".to_owned();
     for member in members {
         let info = queries::get_member(user.as_str(), &member)
             .await

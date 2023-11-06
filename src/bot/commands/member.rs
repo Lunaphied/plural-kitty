@@ -30,7 +30,7 @@ pub async fn exec(
         let name = first_arg;
         if !queries::member_exists(user.as_str(), &name).await? {
             bail!(
-                "Memeber {name} does not exist.\n\nYou can create this member with `!m new {name}`"
+                "Member {name} does not exist.\n\nCreate this member with `!m new {name}`"
             );
         }
         let sub_command = cmd
@@ -41,8 +41,8 @@ pub async fn exec(
             "activator" | "act" => activator_cmd(cmd, room, user, &name).await?,
             "avatar" | "av" => add_avatar(cmd, room, user, &name, event).await?,
             "trackaccount" | "ta" => toggle_track_acc(room, user, &name).await?,
-            "show" => show_member(room, user, &name).await?,
-            "remove" => remove_member(room, user, &name).await?,
+            "show" | "sh" => show_member(room, user, &name).await?,
+            "remove" | "rm" => remove_member(room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
     }

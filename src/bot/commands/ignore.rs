@@ -27,12 +27,12 @@ async fn list_ignored(user_id: &UserId, room: &Joined) -> anyhow::Result<()> {
     let ignored_rooms = queries::list_ignored(user_id.as_str()).await?;
     if ignored_rooms.is_empty() {
         room.send(
-            RoomMessageEventContent::text_plain("No ignored rooms"),
+            RoomMessageEventContent::text_plain("#### No ignored rooms"),
             None,
         )
         .await?;
     } else {
-        let mut msg = "# Ignored Rooms\n".to_owned();
+        let mut msg = "#### Ignored Rooms\n".to_owned();
         for room_id in ignored_rooms {
             let room_name = queries::room_alias(&room_id)
                 .await

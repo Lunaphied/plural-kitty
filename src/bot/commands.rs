@@ -22,58 +22,43 @@ use crate::db::queries;
 pub type ErrList = Vec<anyhow::Error>;
 
 const HELP: &str = r#"
-# Plural Kitty Help
+### Plural Kitty Help
+**Plural Kitty** is a tool that allows users to manage and switch identies on Matrix, similar to **Plural Kit** for Discord.
+This is alpha software so expect alpha quality. Only intended for use by testers at this time.
+> **Activators** are short case-sensitive strings of text that can be sent in this DM to switch members.
+> **Ignoring** a room allows users to prevent Plural Kitty from changing avatar or displayname in certain rooms. 
+> **Tracking** allows users to set individual members to use the same avatar and displayname as the parent account.
 
-Plural Kitty is a tool that allows users to manage and switch plural identies on Matrix,
-similar to Plural Kit for Discord.
-
-**Plural Kitty is alpha software so expect alpha quality. Only intended for use by testers at this time.**
-
-- To start using Plural Kitty create a system member: `!member new [member name]`
-- You can set a display name like this: `!member [member name] displayname [name]` 
-or `!m [member name] dn [display name]`.
-- You can set an avatar like this: send `!member [member name] avatar` 
-or `!m [member name] av` in response to the avatar image. Or send `!m [member name] avatar [mxc url or image]`.
-- `!system` or `!s` to view information about your system.
-- You can clear a display name like this: `!member [member name] displayname !clear` 
-or `!m [member name] dn [display name]`.
-- You can clear an avatar like this: send `!member [member name] avatar !clear` 
-or `!m [member name] av !clear`.
-- You can set a member's display name or avatar to your account's current one by setting it to `!acc`.
-- You can set a member's display name and avatar to track your account's by sending
-`!m [member name] trackaccount` or `!m [member name] ta`.
-- You can remove a member like this; `!member [member name] remove`.
-- To show this help message type `!help`
-
-To switch to a member you must also set one or more activators for that member. Activators are
-short text strings that you can type in this DM to switch to the corresponding member.
-Activators are case insensitive.
-
-- You can add an activator like this: `!member [member name] activator add [activator string]` or
-`!m [name] act add [activator string]`
-- You can remove an activator like this: `!member [member name] activator remove [activator string]` or
-`!m [name] act rm [activator string]`
-
-You may not want Plural Kitty to change your name and avatar in certain rooms.
-
-- To ignore a certain room send: `!ignore [room id or avatar]` or `!i [room id or avatar]`.
-- Send that again to stop ignoring the room.
-- Send just `!ignore` or `!i` to see a list of ignored rooms.
-
-## Example of setting up a member:
-
+To get started: create a member, set an activator, and optionally a displayname and avatar. 
+- Create a system member by sending `!member new [name]` or `!m new [name]`
+- To remove a system member send `!member [name] remove` or `!m [name] rm`<br>
+- Set a displayname by sending `!member [name] displayname [displayname]`or `!m [name] dn [displayname]`
+- To clear a displayname send `!member [name] displayname !clear` or `!m [name] dn !cl`<br>
+- Set an avatar by sending `!member [name] avatar [image|mxc url]` or `!m [name] av` *in reply* to an image. 
+- To clear an avatar send `!member [name] avatar !clear` or `!m [name] av !cl`<br>
+- Add an activator by sending `!member [name] activator add [string]` or `!m [name] act add [string]`
+- To remove an activator send `!member [name] activator remove [string]`or `!m [name] act rm [string]`<br>
+- Toggle ignoring a room by sending `!ignore [room id]` or `!i [room alias]`
+- List ignored rooms by sending `!ignore` or `!i` by itself<br>
+- Toggle tracking for displayname *and* avatar by sending `!member [name] trackaccount` or `!m [name] ta`
+- To toggle tracking for a member's displayname, send `!member [name] displayname !acc`
+- To toggle tracking for a member's avatar, send `!member [name] avatar !acc`<br>
+- Show info on an individual member send `!member [name] show` or `!m [name] sh`
+- List all system members, activators, and current fronter by sending `!system` or `!s`
+- Switch a member to front by sending a valid activator - E.g. ` --ursa, a, <<, :hh `
+- Clear the current member from front by sending `!clear` or `!cl`<br>
+- Show this help message again by sending `!help` or `!h`
+### Example of setting up a new member.
 ```
 !m new sasha
 !m sasha dn Sashanoraa (ze/zir)
-<post an image in this DM>
-!m sasha av     (this mesage is in reply to the image posted above)
+<sends image in this DM>
+!m sasha av     <in reply to the image>
 !m sasha act add s
-s               (switch to member sasha)
-
+s               <switch to member 'sasha'>
 ```
-
-For help and feature requests please refer to
-[#plural-kitty-dev:the-apothecary.club](https://matrix.to/#/#plural-kitty-dev:the-apothecary.club).
+For support and feature requests please refer to [#plural-kitty-dev:the-apothecary.club](https://matrix.to/#/#plural-kitty-dev:the-apothecary.club).
+To contribute to development, submit an issue - or a fix, check out the [Codeberg repo](https://codeberg.org/Apothecary/plural-kitty).
 "#;
 
 pub async fn dm_handler(
@@ -121,11 +106,11 @@ pub async fn dm_handler(
                         "!ignore" | "!i" => {
                             handler.run(ignore::exec(cmd, &room, &client, &event)).await
                         }
-                        "!clear" => handler.run(clear::exec(&room, &event)).await,
-                        "!help" => handler.run_no_feddback(help(cmd, &room)).await,
+                        "!clear" | "!cl" => handler.run(clear::exec(&room, &event)).await,
+                        "!help" | "!h" => handler.run_no_feddback(help(cmd, &room)).await,
                         _ => {
                             let content = RoomMessageEventContent::text_markdown(
-                            "Unknown command. Type `!help` for for a list command and what they do.",
+                            "Unknown command. Type `!help` or `!h` for for a list of commands and what they do.",
                         );
                             room.send(content, None).await?;
                         }
@@ -137,13 +122,13 @@ pub async fn dm_handler(
                 {
                     room.send(
                         RoomMessageEventContent::text_markdown(format!(
-                            "Set current fronter to {name}"
+                            "Current fronter set to **{name}**"
                         )),
                         None,
                     )
                     .await?;
                 } else {
-                    let msg = format!("Unknown command or activator\n\n{HELP}");
+                    let msg = format!("Unknown command or activator.\n\n{HELP}");
                     room.send(RoomMessageEventContent::text_markdown(msg), None)
                         .await?;
                 }
