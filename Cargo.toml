@@ -25,5 +25,5 @@ tracing-subscriber = "0.3.17"
 
 [dependencies.matrix-sdk]
 git = "https://codeberg.org/Apothecary/matrix-rust-sdk.git"
-branch = "plural-kitty"
+branch = "plural-kitty-new"
 features = ["markdown", "anyhow", "ruma-hyper"]
