@@ -1,7 +1,6 @@
 use anyhow::anyhow;
 use anyhow::bail;
 use anyhow::Context;
-use matrix_sdk::room::Joined;
 use matrix_sdk::ruma::api::client::media::create_content;
 use matrix_sdk::ruma::events::room::message::{
     MessageType, OriginalSyncRoomMessageEvent, Relation, RoomMessageEventContent,
@@ -11,6 +10,7 @@ use matrix_sdk::ruma::events::{
     AnyMessageLikeEvent, AnyTimelineEvent, MessageLikeEvent, OriginalMessageLikeEvent,
 };
 use matrix_sdk::ruma::UserId;
+use matrix_sdk::Room;
 
 use crate::bot::parser::Cmd;
 use crate::db::queries;
@@ -19,7 +19,7 @@ use super::ErrList;
 
 pub async fn exec(
     mut cmd: Cmd,
-    room: &Joined,
+    room: &Room,
     event: &OriginalSyncRoomMessageEvent,
 ) -> anyhow::Result<ErrList> {
     let user = &event.sender;
@@ -48,31 +48,29 @@ pub async fn exec(
     Ok(vec![])
 }
 
-async fn new_member(mut cmd: Cmd, room: &Joined, user: &UserId) -> anyhow::Result<()> {
+async fn new_member(mut cmd: Cmd, room: &Room, user: &UserId) -> anyhow::Result<()> {
     let name = cmd.pop_word().ok_or_else(|| anyhow!("Give name plz"))?;
     queries::create_user(user.as_str()).await?;
     queries::create_member(user.as_str(), &name).await?;
-    room.send(
-        RoomMessageEventContent::text_markdown(format!("Created member `{name}`")),
-        None,
-    )
+    room.send(RoomMessageEventContent::text_markdown(format!(
+        "Created member `{name}`"
+    )))
     .await?;
     Ok(())
 }
 
-async fn remove_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+async fn remove_member(room: &Room, user: &UserId, name: &str) -> anyhow::Result<()> {
     queries::remove_member(user.as_str(), name).await?;
-    room.send(
-        RoomMessageEventContent::text_markdown(format!("Removed member `{name}`")),
-        None,
-    )
+    room.send(RoomMessageEventContent::text_markdown(format!(
+        "Removed member `{name}`"
+    )))
     .await?;
     Ok(())
 }
 
 async fn rename_member(
     mut cmd: Cmd,
-    room: &Joined,
+    room: &Room,
     user: &UserId,
     old_name: &str,
 ) -> anyhow::Result<()> {
@@ -80,32 +78,23 @@ async fn rename_member(
         .pop_word()
         .ok_or_else(|| anyhow!("Please specify a new name"))?;
     queries::rename_member(user.as_str(), old_name, &new_name).await?;
-    room.send(
-        RoomMessageEventContent::text_markdown(format!(
-            "Renamed member **{old_name}** to **{new_name}**"
-        )),
-        None,
-    )
+    room.send(RoomMessageEventContent::text_markdown(format!(
+        "Renamed member **{old_name}** to **{new_name}**"
+    )))
     .await?;
     Ok(())
 }
 
-async fn add_display_name(
-    cmd: Cmd,
-    room: &Joined,
-    user: &UserId,
-    name: &str,
-) -> anyhow::Result<()> {
+async fn add_display_name(cmd: Cmd, room: &Room, user: &UserId, name: &str) -> anyhow::Result<()> {
     let mut display_name = cmd.into_string();
     if display_name.is_empty() {
         bail!("Giv name plz");
     }
     if display_name.as_str() == "!clear" {
         queries::remove_display_name(user.as_str(), name).await?;
-        room.send(
-            RoomMessageEventContent::text_markdown("Cleared display name"),
-            None,
-        )
+        room.send(RoomMessageEventContent::text_markdown(
+            "Cleared display name",
+        ))
         .await?;
     } else {
         if display_name.as_str() == "!acc" {
@@ -114,10 +103,9 @@ async fn add_display_name(
                 .display_name;
         }
         queries::add_display_name(user.as_str(), name, &display_name).await?;
-        room.send(
-            RoomMessageEventContent::text_markdown(format!("Set display name to `{display_name}`")),
-            None,
-        )
+        room.send(RoomMessageEventContent::text_markdown(format!(
+            "Set display name to `{display_name}`"
+        )))
         .await?;
     }
     Ok(())
@@ -125,7 +113,7 @@ async fn add_display_name(
 
 async fn add_avatar(
     mut cmd: Cmd,
-    room: &Joined,
+    room: &Room,
     user: &UserId,
     name: &str,
     event: &OriginalSyncRoomMessageEvent,
@@ -141,7 +129,7 @@ async fn add_avatar(
         } else {
             bail!("Unkown argument `{word}`, must be `!clear`, `!acc`, or an mxc url");
         }
-        room.send(RoomMessageEventContent::text_plain("Updated avatar"), None)
+        room.send(RoomMessageEventContent::text_plain("Updated avatar"))
             .await?;
     } else if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
@@ -190,7 +178,7 @@ async fn add_avatar(
     Ok(())
 }
 
-async fn show_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+async fn show_member(room: &Room, user: &UserId, name: &str) -> anyhow::Result<()> {
     let member = queries::get_member(user.as_str(), name).await?;
     let message = format!(
         "## {}\n\n---\n\nDisplay name: {}\n\nAvatar: `{}`\n\nActivators: `{}`",
@@ -199,17 +187,12 @@ async fn show_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Result
         member.avatar.as_deref().unwrap_or("not set"),
         member.activators.join(", "),
     );
-    room.send(RoomMessageEventContent::text_markdown(message), None)
+    room.send(RoomMessageEventContent::text_markdown(message))
         .await?;
     Ok(())
 }
 
-async fn activator_cmd(
-    mut cmd: Cmd,
-    room: &Joined,
-    user: &UserId,
-    name: &str,
-) -> anyhow::Result<()> {
+async fn activator_cmd(mut cmd: Cmd, room: &Room, user: &UserId, name: &str) -> anyhow::Result<()> {
     let sub_command = cmd
         .pop_word()
         .ok_or_else(|| anyhow!("Please specify a sub-command"))?;
@@ -233,7 +216,7 @@ async fn activator_cmd(
                 .await
                 .context("Error adding activator")?;
             let msg = format!("Added activator `{}` to {}", activator, name);
-            room.send(RoomMessageEventContent::text_markdown(msg), None)
+            room.send(RoomMessageEventContent::text_markdown(msg))
                 .await
                 .context("Error sending reply")?;
         }
@@ -245,7 +228,7 @@ async fn activator_cmd(
             })?;
             queries::remove_activator(user.as_str(), name, &activator).await?;
             let msg = format!("Removed activator `{}` from {}", activator, name);
-            room.send(RoomMessageEventContent::text_markdown(msg), None)
+            room.send(RoomMessageEventContent::text_markdown(msg))
                 .await
                 .context("Error sending reply")?;
         }
@@ -254,7 +237,7 @@ async fn activator_cmd(
     Ok(())
 }
 
-async fn toggle_track_acc(room: &Joined, user: &UserId, name: &str) -> anyhow::Result<()> {
+async fn toggle_track_acc(room: &Room, user: &UserId, name: &str) -> anyhow::Result<()> {
     let msg = if queries::toggle_tracking(user.as_str(), name)
         .await
         .context("Error toggling track account")?
@@ -264,7 +247,7 @@ async fn toggle_track_acc(room: &Joined, user: &UserId, name: &str) -> anyhow::R
         "disabled"
     };
     let msg = format!("Tracking account {msg} for {name}");
-    room.send(RoomMessageEventContent::text_markdown(msg), None)
+    room.send(RoomMessageEventContent::text_markdown(msg))
         .await
         .context("Error sending reply")?;
     Ok(())

@@ -6,9 +6,9 @@ use std::{path::Path, sync::atomic::AtomicBool, time::Duration};
 use anyhow::{anyhow, Context};
 use matrix_sdk::{
     config::SyncSettings,
-    room::Room,
+    matrix_auth::MatrixSession,
     ruma::events::room::member::{OriginalSyncRoomMemberEvent, StrippedRoomMemberEvent},
-    Account, Client, Session,
+    Account, Client, Room, RoomState
 };
 use tokio::time::sleep;
 
@@ -30,7 +30,7 @@ pub async fn create_client() -> anyhow::Result<Client> {
         let session_json = tokio::fs::read(&session_file_path).await.with_context(|| {
             anyhow!("Error reading session file {}", session_file_path.display())
         })?;
-        let session = serde_json::from_slice(&session_json).with_context(|| {
+        let session: MatrixSession = serde_json::from_slice(&session_json).with_context(|| {
             anyhow!(
                 "Session file {} is not a valid session object",
                 session_file_path.display()
@@ -45,13 +45,14 @@ pub async fn create_client() -> anyhow::Result<Client> {
     }
     async fn new_login(password: &str, session_file_path: &Path) -> anyhow::Result<Client> {
         let client = client().await?;
-        let session: Session = client
+        let resp = client
+            .matrix_auth()
             .login_username(CONFIG.bot.user.as_str(), password)
             .initial_device_display_name("Plural Relay")
             .send()
             .await
-            .context("Error login in")?
-            .into();
+            .context("Error login in")?;
+        let session: MatrixSession = (&resp).into();
         let session_json =
             serde_json::to_vec(&session).context("Error serializing session data")?;
         tokio::fs::write(session_file_path, session_json)
@@ -160,36 +161,34 @@ pub async fn init() -> anyhow::Result<()> {
                 return;
             }
 
-            if let Room::Invited(room) = room {
-                tokio::spawn(async move {
-                    println!("Autojoining room {}", room.room_id());
-                    let mut delay = 2;
+            tokio::spawn(async move {
+                println!("Autojoining room {}", room.room_id());
+                let mut delay = 2;
 
-                    while let Err(err) = room.accept_invitation().await {
-                        // retry autojoin due to synapse sending invites, before the
-                        // invited user can join for more information see
-                        // https://github.com/matrix-org/synapse/issues/4345
-                        eprintln!(
-                            "Failed to join room {} ({err:?}), retrying in {delay}s",
-                            room.room_id()
-                        );
+                while let Err(err) = room.join().await {
+                    // retry autojoin due to synapse sending invites, before the
+                    // invited user can join for more information see
+                    // https://github.com/matrix-org/synapse/issues/4345
+                    eprintln!(
+                        "Failed to join room {} ({err:?}), retrying in {delay}s",
+                        room.room_id()
+                    );
 
-                        sleep(Duration::from_secs(delay)).await;
-                        delay *= 2;
+                    sleep(Duration::from_secs(delay)).await;
+                    delay *= 2;
 
-                        if delay > 3600 {
-                            eprintln!("Can't join room {} ({err:?})", room.room_id());
-                            break;
-                        }
+                    if delay > 3600 {
+                        eprintln!("Can't join room {} ({err:?})", room.room_id());
+                        break;
                     }
-                    println!("Successfully joined room {}", room.room_id());
-                });
-            }
+                }
+                println!("Successfully joined room {}", room.room_id());
+            });
         },
     );
     client.add_event_handler(
         |event: OriginalSyncRoomMemberEvent, room: Room| async move {
-            if let Room::Joined(_) = room {
+            if room.state() == RoomState::Joined {
                 tracing::debug!("Profile updated maybe");
                 if let Err(e) = update_user_tracking_members(event.sender.as_str()).await {
                     tracing::error!("Error updating info for {}: {e:#}", event.sender);

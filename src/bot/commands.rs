@@ -7,14 +7,14 @@ mod system;
 use std::future::Future;
 
 use anyhow::Context;
-use matrix_sdk::room::{Joined, Receipts, Room};
+use matrix_sdk::room::{Receipts, Room};
 use matrix_sdk::ruma::events::reaction::ReactionEventContent;
 use matrix_sdk::ruma::events::relation::Annotation;
 use matrix_sdk::ruma::events::room::message::{
     MessageType, OriginalSyncRoomMessageEvent, RoomMessageEventContent,
 };
 use matrix_sdk::ruma::OwnedEventId;
-use matrix_sdk::{Client, RoomMemberships};
+use matrix_sdk::{Client, RoomMemberships, RoomState};
 
 use crate::bot::parser::{Cmd, CmdPart};
 use crate::db::queries;
@@ -66,72 +66,67 @@ pub async fn dm_handler(
     client: Client,
     room: Room,
 ) -> anyhow::Result<()> {
-    if event.sender == client.user_id().unwrap() {
+    if event.sender == client.user_id().unwrap() || room.state() != RoomState::Joined {
         return Ok(());
     }
-    if let Room::Joined(room) = room {
-        // Only respond to DMs
-        tracing::debug!("Processing event {}", event.event_id);
-        let members = room.members(RoomMemberships::JOIN).await?;
-        if members.len() != 2 {
-            tracing::debug!("Ignoring non-DM message");
-            return Ok(());
-        }
-        tokio::spawn({
-            let room = room.clone();
-            let event_id = event.event_id.clone();
-            async move {
-                let new_receipts = Receipts::new().public_read_receipt(event_id);
-                if let Err(e) = room.send_multiple_receipts(new_receipts).await {
-                    tracing::error!("Error sending receipt for message: {e:#}",);
-                }
+    // Only respond to DMs
+    tracing::debug!("Processing event {}", event.event_id);
+    let members = room.members(RoomMemberships::JOIN).await?;
+    if members.len() != 2 {
+        tracing::debug!("Ignoring non-DM message");
+        return Ok(());
+    }
+    tokio::spawn({
+        let room = room.clone();
+        let event_id = event.event_id.clone();
+        async move {
+            let new_receipts = Receipts::new().public_read_receipt(event_id);
+            if let Err(e) = room.send_multiple_receipts(new_receipts).await {
+                tracing::error!("Error sending receipt for message: {e:#}",);
             }
-        });
-        if queries::read_msgs(room.room_id().as_str(), event.event_id.as_str()).await? {
-            tracing::debug!("Skipping already seen message");
-            return Ok(());
         }
-        let handler = Handler {
-            room: room.clone(),
-            cmd_event_id: event.event_id.clone(),
-        };
-        if let MessageType::Text(message_content) = &event.content.msgtype {
-            let mut cmd = Cmd::parse(message_content)?;
-            tracing::debug!("{cmd:?}");
-            if let Some(CmdPart::Word(word)) = cmd.pop() {
-                if word.starts_with('!') {
-                    match word.as_str() {
-                        "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
-                        "!system" | "!s" => handler.run(system::exec(&room, &event.sender)).await,
-                        "!ignore" | "!i" => {
-                            handler.run(ignore::exec(cmd, &room, &client, &event)).await
-                        }
-                        "!clear" | "!cl" => handler.run(clear::exec(&room, &event)).await,
-                        "!help" | "!h" => handler.run_no_feddback(help(cmd, &room)).await,
-                        _ => {
-                            let content = RoomMessageEventContent::text_markdown(
-                            "Unknown command. Type `!help` or `!h` for for a list of commands and what they do.",
-                        );
-                            room.send(content, None).await?;
-                        }
+    });
+    if queries::read_msgs(room.room_id().as_str(), event.event_id.as_str()).await? {
+        tracing::debug!("Skipping already seen message");
+        return Ok(());
+    }
+    let handler = Handler {
+        room: room.clone(),
+        cmd_event_id: event.event_id.clone(),
+    };
+    if let MessageType::Text(message_content) = &event.content.msgtype {
+        let mut cmd = Cmd::parse(message_content)?;
+        tracing::debug!("{cmd:?}");
+        if let Some(CmdPart::Word(word)) = cmd.pop() {
+            if word.starts_with('!') {
+                match word.as_str() {
+                    "!member" | "!m" => handler.run(member::exec(cmd, &room, &event)).await,
+                    "!system" | "!s" => handler.run(system::exec(&room, &event.sender)).await,
+                    "!ignore" | "!i" => {
+                        handler.run(ignore::exec(cmd, &room, &client, &event)).await
                     }
-                } else if let Some(name) =
-                    queries::set_fronter_from_activator(event.sender.as_str(), &word.to_lowercase())
-                        .await
-                        .context("Error updating current member")?
-                {
-                    room.send(
-                        RoomMessageEventContent::text_markdown(format!(
-                            "Current fronter set to **{name}**"
-                        )),
-                        None,
-                    )
-                    .await?;
-                } else {
-                    let msg = format!("Unknown command or activator.\n\n{HELP}");
-                    room.send(RoomMessageEventContent::text_markdown(msg), None)
-                        .await?;
+                    "!clear" => handler.run(clear::exec(&room, &event)).await,
+                    "!help" => handler.run_no_feddback(help(cmd, &room)).await,
+                    _ => {
+                        let content = RoomMessageEventContent::text_markdown(
+                            "Unknown command. Type `!help` for for a list command and what they do.",
+                        );
+                        room.send(content).await?;
+                    }
                 }
+            } else if let Some(name) =
+                queries::set_fronter_from_activator(event.sender.as_str(), &word.to_lowercase())
+                    .await
+                    .context("Error updating current member")?
+            {
+                room.send(RoomMessageEventContent::text_markdown(format!(
+                    "Set current fronter to **{name}**"
+                )))
+                .await?;
+            } else {
+                let msg = format!("Unknown command or activator\n\n{HELP}");
+                room.send(RoomMessageEventContent::text_markdown(msg))
+                    .await?;
             }
         }
     }
@@ -140,7 +135,7 @@ pub async fn dm_handler(
 
 #[derive(Clone)]
 struct Handler {
-    room: Joined,
+    room: Room,
     cmd_event_id: OwnedEventId,
 }
 
@@ -148,7 +143,7 @@ impl Handler {
     async fn run(self, f: impl Future<Output = anyhow::Result<ErrList>>) {
         let content =
             ReactionEventContent::new(Annotation::new(self.cmd_event_id.clone(), "⏳".to_owned()));
-        let reaction_event_id = match self.room.send(content, None).await {
+        let reaction_event_id = match self.room.send(content).await {
             Ok(resp) => Some(resp.event_id),
             Err(e) => {
                 tracing::warn!("Error setting pending reaction: {e:?}");
@@ -168,7 +163,7 @@ impl Handler {
                         self.cmd_event_id,
                         "✅".to_owned(),
                     ));
-                    if let Err(e) = self.room.send(content, None).await {
+                    if let Err(e) = self.room.send(content).await {
                         tracing::error!("Error sending success reaction: {e}");
                     }
                 } else {
@@ -176,13 +171,13 @@ impl Handler {
                         self.cmd_event_id,
                         "❌".to_owned(),
                     ));
-                    if let Err(e) = self.room.send(content, None).await {
+                    if let Err(e) = self.room.send(content).await {
                         tracing::error!("Error sending error reaction: {e}");
                     }
                     for e in errors {
                         tracing::error!("Error in command handler: {e:#}");
                         let content = RoomMessageEventContent::text_markdown(format!("{e}"));
-                        if let Err(e) = self.room.send(content, None).await {
+                        if let Err(e) = self.room.send(content).await {
                             tracing::error!("Error sending error message: {e}");
                         }
                     }
@@ -193,12 +188,12 @@ impl Handler {
                 tracing::debug!("{e:#?}");
                 let content =
                     ReactionEventContent::new(Annotation::new(self.cmd_event_id, "❌".to_owned()));
-                if let Err(e) = self.room.send(content, None).await {
+                if let Err(e) = self.room.send(content).await {
                     tracing::error!("Error sending error reaction: {e}");
                 }
                 tracing::info!("Printing: {e}");
                 let content = RoomMessageEventContent::text_markdown(format!("{e}"));
-                if let Err(e) = self.room.send(content, None).await {
+                if let Err(e) = self.room.send(content).await {
                     tracing::error!("Error sending error message: {e}");
                 }
             }
@@ -213,13 +208,13 @@ impl Handler {
                         self.cmd_event_id,
                         "❌".to_owned(),
                     ));
-                    if let Err(e) = self.room.send(content, None).await {
+                    if let Err(e) = self.room.send(content).await {
                         tracing::error!("Error sending error reaction: {e}");
                     }
                     for e in errors {
                         tracing::error!("Error in command handler: {e:#}");
                         let content = RoomMessageEventContent::text_plain(format!("{e}"));
-                        if let Err(e) = self.room.send(content, None).await {
+                        if let Err(e) = self.room.send(content).await {
                             tracing::error!("Error sending error message: {e}");
                         }
                     }
@@ -228,7 +223,7 @@ impl Handler {
             Err(e) => {
                 tracing::error!("Error in command handler: {e:#}");
                 let content = RoomMessageEventContent::text_plain(format!("{e}"));
-                if let Err(e) = self.room.send(content, None).await {
+                if let Err(e) = self.room.send(content).await {
                     tracing::error!("Error sending error message: {e}");
                 }
             }
@@ -263,7 +258,7 @@ impl CmdRector {
             self.handler.cmd_event_id.clone(),
             "⏳".to_owned(),
         ));
-        self.reaction_event_id = match self.handler.room.send(content, None).await {
+        self.reaction_event_id = match self.handler.room.send(content).await {
             Ok(resp) => Some(resp.event_id),
             Err(e) => {
                 tracing::warn!("Error setting pending reaction: {e:?}");
@@ -283,7 +278,7 @@ impl CmdRector {
                     handler.cmd_event_id,
                     "✅".to_owned(),
                 ));
-                if let Err(e) = handler.room.send(content, None).await {
+                if let Err(e) = handler.room.send(content).await {
                     tracing::error!("Error sending error reaction: {e}");
                 }
             });
@@ -314,7 +309,7 @@ impl Drop for CmdRector {
                     handler.cmd_event_id,
                     "❌".to_owned(),
                 ));
-                if let Err(e) = handler.room.send(content, None).await {
+                if let Err(e) = handler.room.send(content).await {
                     tracing::error!("Error sending error reaction: {e}");
                 }
             });
@@ -322,7 +317,7 @@ impl Drop for CmdRector {
     }
 }
 
-pub async fn help(mut cmd: Cmd, room: &Joined) -> anyhow::Result<ErrList> {
+pub async fn help(mut cmd: Cmd, room: &Room) -> anyhow::Result<ErrList> {
     let word = cmd.pop_word();
     // TODO add most help info
     #[allow(clippy::match_single_binding)]
@@ -330,6 +325,6 @@ pub async fn help(mut cmd: Cmd, room: &Joined) -> anyhow::Result<ErrList> {
         _ => HELP,
     };
     let content = RoomMessageEventContent::text_markdown(message);
-    room.send(content, None).await?;
+    room.send(content).await?;
     Ok(vec![])
 }

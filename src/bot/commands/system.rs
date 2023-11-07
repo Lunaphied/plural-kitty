@@ -1,24 +1,19 @@
 use anyhow::Context;
-use matrix_sdk::{
-    room::Joined,
-    ruma::{events::room::message::RoomMessageEventContent, UserId},
-};
+use matrix_sdk::ruma::{events::room::message::RoomMessageEventContent, UserId};
+use matrix_sdk::Room;
 
 use crate::db::queries;
 
 use super::ErrList;
 
-pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
+pub async fn exec(room: &Room, user: &UserId) -> anyhow::Result<ErrList> {
     let members = queries::list_members(user.as_str())
         .await
         .context("Error getting members from user")?;
     if members.is_empty() {
-        room.send(
-            RoomMessageEventContent::text_markdown(
-                "This account has no system members yet. Create some using `!member new [name]`",
-            ),
-            None,
-        )
+        room.send(RoomMessageEventContent::text_markdown(
+            "This account has no system members yet. Create some using `!member new [name]`",
+        ))
         .await
         .context("Error sending reply")?;
         return Ok(vec![]);
@@ -42,7 +37,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
     } else {
         msg += "\n**No current fronter**";
     }
-    room.send(RoomMessageEventContent::text_markdown(msg), None)
+    room.send(RoomMessageEventContent::text_markdown(msg))
         .await
         .context("Error sending reply")?;
     Ok(vec![])

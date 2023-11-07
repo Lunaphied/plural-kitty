@@ -1,9 +1,9 @@
-use matrix_sdk::room::Joined;
 use matrix_sdk::ruma::events::room::message::{
     OriginalSyncRoomMessageEvent, RoomMessageEventContent,
 };
 use matrix_sdk::ruma::{RoomId, UserId};
 use matrix_sdk::Client;
+use matrix_sdk::Room;
 
 use crate::bot::parser::Cmd;
 use crate::db::queries;
@@ -12,7 +12,7 @@ use super::ErrList;
 
 pub async fn exec(
     mut cmd: Cmd,
-    room: &Joined,
+    room: &Room,
     client: &Client,
     event: &OriginalSyncRoomMessageEvent,
 ) -> anyhow::Result<ErrList> {
@@ -23,14 +23,11 @@ pub async fn exec(
     Ok(vec![])
 }
 
-async fn list_ignored(user_id: &UserId, room: &Joined) -> anyhow::Result<()> {
+async fn list_ignored(user_id: &UserId, room: &Room) -> anyhow::Result<()> {
     let ignored_rooms = queries::list_ignored(user_id.as_str()).await?;
     if ignored_rooms.is_empty() {
-        room.send(
-            RoomMessageEventContent::text_plain("#### No ignored rooms"),
-            None,
-        )
-        .await?;
+        room.send(RoomMessageEventContent::text_plain("#### No ignored rooms"))
+            .await?;
     } else {
         let mut msg = "#### Ignored Rooms\n".to_owned();
         for room_id in ignored_rooms {
@@ -39,13 +36,13 @@ async fn list_ignored(user_id: &UserId, room: &Joined) -> anyhow::Result<()> {
                 .unwrap_or_else(|_| room_id.to_owned());
             msg += &format!("- {room_name}\n");
         }
-        room.send(RoomMessageEventContent::text_markdown(msg), None)
+        room.send(RoomMessageEventContent::text_markdown(msg))
             .await?;
     }
     Ok(())
 }
 
-async fn toggle_ignored(room_id: &RoomId, user_id: &UserId, room: &Joined) -> anyhow::Result<()> {
+async fn toggle_ignored(room_id: &RoomId, user_id: &UserId, room: &Room) -> anyhow::Result<()> {
     let currently_ignored = queries::is_room_ignored(user_id.as_str(), room_id.as_str()).await?;
     let room_name = queries::room_alias(room_id.as_str())
         .await
@@ -55,17 +52,15 @@ async fn toggle_ignored(room_id: &RoomId, user_id: &UserId, room: &Joined) -> an
         });
     if currently_ignored {
         queries::unignore_room(user_id.as_str(), room_id.as_str()).await?;
-        room.send(
-            RoomMessageEventContent::text_markdown(format!("No longer ignoring room {room_name}")),
-            None,
-        )
+        room.send(RoomMessageEventContent::text_markdown(format!(
+            "No longer ignoring room {room_name}"
+        )))
         .await?;
     } else {
         queries::ignore_room(user_id.as_str(), room_id.as_str()).await?;
-        room.send(
-            RoomMessageEventContent::text_markdown(format!("Ignoring room {room_name}")),
-            None,
-        )
+        room.send(RoomMessageEventContent::text_markdown(format!(
+            "Ignoring room {room_name}"
+        )))
         .await?;
     }
     Ok(())
