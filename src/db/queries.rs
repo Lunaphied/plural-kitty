@@ -100,6 +100,18 @@ pub async fn remove_member(mxid: &str, name: &str) -> sqlx::Result<()> {
     .map(|_| ())
 }
 
+pub async fn rename_member(mxid: &str, old_name: &str, new_name: &str) -> sqlx::Result<()> {
+    sqlx::query!(
+        "UPDATE members SET name = $3 WHERE mxid = $1 AND name = $2;",
+        mxid,
+        old_name,
+        new_name,
+    )
+    .execute(&*PK_POOL)
+    .await
+    .map(|_| ())
+}
+
 pub async fn add_display_name(mxid: &str, name: &str, display_name: &str) -> sqlx::Result<()> {
     sqlx::query!(
         "UPDATE members SET display_name = $3 WHERE mxid = $1 AND name = $2;",

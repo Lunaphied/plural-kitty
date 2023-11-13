@@ -198,6 +198,20 @@
     },
     "query": "SELECT name FROM members WHERE mxid = $1;"
   },
+  "74b68882dad690848810b2405a7c5ce35ddfd0f928500e54ae8e04f566c6f9a5": {
+    "describe": {
+      "columns": [],
+      "nullable": [],
+      "parameters": {
+        "Left": [
+          "Text",
+          "Text",
+          "Text"
+        ]
+      }
+    },
+    "query": "UPDATE members SET name = $3 WHERE mxid = $1 AND name = $2;"
+  },
   "77b822253ffd2bba96d79e768ff6cfc023b4f0dc6afed81c9901bbcd70d29e5b": {
     "describe": {
       "columns": [],

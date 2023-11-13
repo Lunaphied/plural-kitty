@@ -29,9 +29,7 @@ pub async fn exec(
     } else {
         let name = first_arg;
         if !queries::member_exists(user.as_str(), &name).await? {
-            bail!(
-                "Member {name} does not exist.\n\nCreate this member with `!m new {name}`"
-            );
+            bail!("Member {name} does not exist.\n\nCreate this member with `!m new {name}`");
         }
         let sub_command = cmd
             .pop_word()
@@ -43,6 +41,7 @@ pub async fn exec(
             "trackaccount" | "ta" => toggle_track_acc(room, user, &name).await?,
             "show" | "sh" => show_member(room, user, &name).await?,
             "remove" | "rm" => remove_member(room, user, &name).await?,
+            "rename" => rename_member(cmd, room, user, &name).await?,
             s => bail!("Unkown command {s}"),
         }
     }
@@ -65,6 +64,26 @@ async fn remove_member(room: &Joined, user: &UserId, name: &str) -> anyhow::Resu
     queries::remove_member(user.as_str(), name).await?;
     room.send(
         RoomMessageEventContent::text_markdown(format!("Removed member `{name}`")),
+        None,
+    )
+    .await?;
+    Ok(())
+}
+
+async fn rename_member(
+    mut cmd: Cmd,
+    room: &Joined,
+    user: &UserId,
+    old_name: &str,
+) -> anyhow::Result<()> {
+    let new_name = cmd
+        .pop_word()
+        .ok_or_else(|| anyhow!("Please specify a new name"))?;
+    queries::rename_member(user.as_str(), old_name, &new_name).await?;
+    room.send(
+        RoomMessageEventContent::text_markdown(format!(
+            "Renamed member **{old_name}** to **{new_name}**"
+        )),
         None,
     )
     .await?;
@@ -127,7 +146,12 @@ async fn add_avatar(
     } else if let Some(Relation::Reply { in_reply_to }) = &event.content.relates_to {
         let AnyTimelineEvent::MessageLike(AnyMessageLikeEvent::RoomMessage(
             MessageLikeEvent::Original(OriginalMessageLikeEvent {
-                content: RoomMessageEventContent { msgtype: MessageType::Image(image_event), .. }, ..
+                content:
+                    RoomMessageEventContent {
+                        msgtype: MessageType::Image(image_event),
+                        ..
+                    },
+                ..
             }),
         )) = room
             .event(&in_reply_to.event_id)
@@ -135,8 +159,8 @@ async fn add_avatar(
             .context("Error getting image event")?
             .event
             .deserialize()
-            .context("Error deserializing image event")? else 
-        {
+            .context("Error deserializing image event")?
+        else {
             bail!("`!member [member] avatar must be sent in reply to an image");
         };
         let media_mxc = match image_event.source {
