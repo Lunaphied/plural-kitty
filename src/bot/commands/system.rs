@@ -28,7 +28,7 @@ pub async fn exec(room: &Joined, user: &UserId) -> anyhow::Result<ErrList> {
         let info = queries::get_member(user.as_str(), &member)
             .await
             .context(format!("Error getting info for member {member}"))?;
-        msg += &format!("- {}", info.display_name.as_ref().unwrap_or(&info.name));
+        msg += &format!("- ({}) {}", info.name, info.display_name.as_ref().unwrap_or(&info.name));
         if !info.activators.is_empty() {
             msg += &format!(" (`{}`)", info.activators.join(","));
         }
