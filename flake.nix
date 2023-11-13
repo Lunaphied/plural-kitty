@@ -1,105 +1,24 @@
 {
+  description = "Plural Kitty";
+
   inputs = {
     nixpkgs.url = "nixpkgs/nixos-unstable";
+    sqlx-nixpkgs.url = "nixpkgs/5a8650469a9f8a1958ff9373bd27fb8e54c4365d";
     flake-utils.url = "github:numtide/flake-utils";
   };
 
-  outputs = { self, nixpkgs, flake-utils }:
+  outputs = { self, nixpkgs, sqlx-nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem
       (system:
         let
           pkgs = nixpkgs.legacyPackages.${system};
+          pkgs-sqlx = sqlx-nixpkgs.legacyPackages.${system};
         in
-        rec {
-          packages = rec {
-            plural-kitty = pkgs.rustPlatform.buildRustPackage rec {
-              pname = "plural-kitty";
-              version = "0.0.0";
-              src = ./.;
-              nativeBuildInputs = with pkgs; [ git binutils pkg-config ];
-              buildInputs = with pkgs; [ openssl sqlite ];
-              cargoLock = {
-                lockFile = "${src}/Cargo.lock";
-                allowBuiltinFetchGit = true;
-              };
-            };
-            default = plural-kitty;
-          };
-          devShells.default = import ./shell.nix { inherit pkgs; };
-        })
-    // {
-      nixosModules = rec {
-        plural-kitty = { config, lib, pkgs, ... }:
-          let
-            cfg = config.services.plural-kitty;
-            settingsFormat = pkgs.formats.yaml { };
-          in
-          {
-            options.services.plural-kitty = {
-              enable = lib.mkEnableOption (lib.mdDoc "Plural Kitty");
-
-              package = lib.mkOption {
-                type = lib.types.package;
-                default = self.packages."${pkgs.system}".plural-kitty;
-                description = ''
-                  				Overridable attribute of the plural-kitty's package to use.
-                  			'';
-              };
-
-              user = lib.mkOption {
-                type = lib.types.str;
-                default = "plural-kitty";
-              };
-
-              group = lib.mkOption {
-                type = lib.types.str;
-                default = "plural-kitty";
-              };
-
-              logString = lib.mkOption {
-                type = lib.types.str;
-                default = "warn,plural_kitty=info";
-              };
-
-              settings = lib.mkOption {
-                type = lib.types.submodule {
-                  freeformType = settingsFormat.type;
-                };
-                default = { };
-                description = ''
-                  			'';
-              };
-            };
-
-            config = lib.mkIf cfg.enable {
-              systemd.services.plural-kitty = {
-                description = "Plural Kitty";
-                after = [ "network.target" ];
-                wantedBy = [ "multi-user.target" ];
-                environment = {
-                  RUST_LOG = cfg.logString;
-                };
-                serviceConfig = {
-                  ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "config.yaml" cfg.settings}";
-                  Restart = "always";
-                  RestartSec = 5;
-                  User = cfg.user;
-                  Group = cfg.group;
-                };
-              };
-              environment.systemPackages = [ cfg.package ];
-              users.users = lib.optionalAttrs (cfg.user == "plural-kitty") {
-                "plural-kitty" = {
-                  group = "plural-kitty";
-                  isSystemUser = true;
-                };
-              };
-              users.groups = lib.optionalAttrs (cfg.group == "plural-kitty") {
-                "plural-kitty" = { };
-              };
-            };
-          };
-        default = plural-kitty;
+        {
+          devShells.default = import ./shell.nix { inherit pkgs; inherit pkgs-sqlx; };
+          packages.default = pkgs.callPackage ./default.nix { };
+        }
+      ) // {
+        nixosModules.default = import ./module.nix self;
       };
-    };
 }

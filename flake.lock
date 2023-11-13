@@ -36,7 +36,23 @@
     "root": {
       "inputs": {
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs"
+        "nixpkgs": "nixpkgs",
+        "sqlx-nixpkgs": "sqlx-nixpkgs"
+      }
+    },
+    "sqlx-nixpkgs": {
+      "locked": {
+        "lastModified": 1688072080,
+        "narHash": "sha256-mPsxREerkmDU2m7zi8j19ooc1F9wKPWBJ77S7swXMmI=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "5a8650469a9f8a1958ff9373bd27fb8e54c4365d",
+        "type": "github"
+      },
+      "original": {
+        "id": "nixpkgs",
+        "rev": "5a8650469a9f8a1958ff9373bd27fb8e54c4365d",
+        "type": "indirect"
       }
     },
     "systems": {
