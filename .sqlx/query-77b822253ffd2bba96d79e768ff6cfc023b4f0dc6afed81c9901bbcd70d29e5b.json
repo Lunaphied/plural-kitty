@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE users SET current_fronter = null WHERE mxid = $1 AND current_fronter = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "77b822253ffd2bba96d79e768ff6cfc023b4f0dc6afed81c9901bbcd70d29e5b"
+}

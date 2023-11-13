@@ -1,0 +1,20 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT mxid FROM users",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mxid",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "f16c64ed3d2565d725ef0b4eca4cfc871a5435e281756a7a0b3a7464b9ebd7e4"
+}

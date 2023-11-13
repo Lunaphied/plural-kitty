@@ -1,0 +1,23 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE members SET track_account = NOT track_account\n        WHERE mxid = $1 AND name = $2 RETURNING track_account",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "track_account",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": [
+      false
+    ]
+  },
+  "hash": "3316cb9019766dac5f14eb0cdbd032db0d4035388fe01e9787f8c3c4bdb683d6"
+}

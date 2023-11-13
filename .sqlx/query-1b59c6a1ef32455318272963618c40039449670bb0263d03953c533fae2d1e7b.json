@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE members SET activators = array_remove(activators, $3) WHERE mxid = $1 AND name = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "1b59c6a1ef32455318272963618c40039449670bb0263d03953c533fae2d1e7b"
+}

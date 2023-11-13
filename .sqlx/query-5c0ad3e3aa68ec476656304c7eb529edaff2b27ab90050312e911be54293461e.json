@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE members SET display_name = $3 WHERE mxid = $1 AND name = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "5c0ad3e3aa68ec476656304c7eb529edaff2b27ab90050312e911be54293461e"
+}

@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE members SET activators = array_append(activators, $3) WHERE mxid = $1 AND name = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e8682f4784e0eba5f489ed027522c494487c2d5986c5ce37013655fdbce9ea8d"
+}

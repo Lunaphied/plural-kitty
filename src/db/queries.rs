@@ -1,5 +1,6 @@
 use anyhow::{Context, anyhow};
 use sqlx::Row;
+use sqlx::postgres::PgRow;
 
 use super::{models::*, DbError};
 use super::{PK_POOL, SYNAPSE_POOL};
@@ -7,7 +8,7 @@ use super::{PK_POOL, SYNAPSE_POOL};
 pub async fn get_synapse_user(access_token: &str) -> anyhow::Result<String> {
     sqlx::query("SELECT user_id FROM access_tokens WHERE token = $1")
         .bind(access_token)
-        .map(|row| row.get::<String, usize>(0))
+        .map(|row: PgRow| row.get::<String, usize>(0))
         .fetch_one(&*SYNAPSE_POOL)
         .await
         .context("Error getting user from auth token")

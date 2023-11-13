@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM members WHERE mxid = $1 AND name = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "e07149a8c256665c17632d76cd817a7e6e55149b12a4489f23b2b95e11cc2248"
+}

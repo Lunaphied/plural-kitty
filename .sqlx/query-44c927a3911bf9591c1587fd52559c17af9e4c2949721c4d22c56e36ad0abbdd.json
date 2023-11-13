@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "UPDATE members SET display_name = null WHERE mxid = $1 AND name = $2;",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "44c927a3911bf9591c1587fd52559c17af9e4c2949721c4d22c56e36ad0abbdd"
+}

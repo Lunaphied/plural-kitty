@@ -1,0 +1,52 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        SELECT\n            m.mxid AS mxid,\n            m.name AS name, \n            m.display_name AS display_name,\n            m.avatar AS avatar,\n            m.activators AS activators,\n            m.track_account AS track_account\n        FROM users AS u \n            JOIN members AS m ON u.mxid = m.mxid AND u.current_fronter = m.name\n        WHERE u.mxid = $1\n        ",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "mxid",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 1,
+        "name": "name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 2,
+        "name": "display_name",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 3,
+        "name": "avatar",
+        "type_info": "Text"
+      },
+      {
+        "ordinal": 4,
+        "name": "activators",
+        "type_info": "TextArray"
+      },
+      {
+        "ordinal": 5,
+        "name": "track_account",
+        "type_info": "Bool"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      true,
+      true,
+      false,
+      false
+    ]
+  },
+  "hash": "bd50efb4a53c4308d9d041faaf97cc5d09a0f96c0f98f52298dd32faf8ca0203"
+}

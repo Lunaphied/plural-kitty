@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO read_msgs(room_id, event_id) \n                     VALUES ($1, $2) ON CONFLICT (room_id) DO \n                     UPDATE SET event_id = $2 WHERE read_msgs.room_id = $1",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b47a3281b2e9a170be27b5d2df5edcc3a229cf32368cc601d742b9af2dab7291"
+}

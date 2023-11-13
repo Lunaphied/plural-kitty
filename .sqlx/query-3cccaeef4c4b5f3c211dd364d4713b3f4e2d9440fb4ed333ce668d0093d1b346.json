@@ -1,0 +1,16 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "\n        UPDATE members\n        SET \n            display_name = $2,\n            avatar = $3\n        WHERE mxid = $1\n        AND track_account = TRUE\n    ",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "3cccaeef4c4b5f3c211dd364d4713b3f4e2d9440fb4ed333ce668d0093d1b346"
+}

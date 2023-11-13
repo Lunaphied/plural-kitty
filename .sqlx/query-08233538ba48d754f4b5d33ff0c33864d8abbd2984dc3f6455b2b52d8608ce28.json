@@ -1,0 +1,15 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "DELETE FROM ignored_rooms WHERE mxid = $1 AND room_id = $2",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Text"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "08233538ba48d754f4b5d33ff0c33864d8abbd2984dc3f6455b2b52d8608ce28"
+}
