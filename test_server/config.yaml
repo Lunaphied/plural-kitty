@@ -1,18 +1,18 @@
 listen: 127.0.0.1:4000
-synapse:
+dendrite:
   host: http://127.0.0.1:8008
   db:
-    user: synapse
+    user: dendrite
     password: beepboop
     host: localhost
-    database: synapse
+    database: dendrite
 bot:
   user: '@pk:test.local'
   homeserver_url: http://127.0.0.1:8008
   state_store: ./test_server/data/state_store
   display_name: 'Plural Kitty 💜'
   db:
-    user: synapse
+    user: dendrite
     password: beepboop
     host: localhost
     database: plural_kitty

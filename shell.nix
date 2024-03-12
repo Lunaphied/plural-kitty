@@ -1,5 +1,5 @@
 { pkgs ? import <nixpkgs> { }
-, pkgs-sqlx ? import <nixpkgs>
+, pkgs-sqlx ? import <nixpkgs> { } 
 }:
 
 pkgs.mkShell {
@@ -23,5 +23,5 @@ pkgs.mkShell {
   RUST_BACKTRACE = 1;
   PK_LOG = "plural_kitty=debug,warn";
   PGPASSWORD = "beepboop";
-  DATABASE_URL = "postgres://synapse:beepboop@localhost/plural_kitty";
+  DATABASE_URL = "postgres://dendrite:beepboop@localhost/plural_kitty";
 }

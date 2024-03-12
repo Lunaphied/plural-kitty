@@ -1,0 +1,21 @@
+# Configuration file for Dendrite.
+global:
+  server_name: "test.local"
+  private_key: "/data/test.local.signing.key"
+  database:
+    connection_string: postgresql://dendrite:beepboop@db/dendrite?sslmode=disable
+media_api:
+  base_path: /data/media_store
+logging:
+- type: std
+  level: info
+- type: file
+  level: info
+  params:
+    path: ./logs
+client_api:
+  registration_shared_secret: "MU3-uk,z#AwTa@98;@fWljisyj6Q:6&QH,k7gEUT#3Gz3LCiT3"
+  registration_disabled: true
+  enable_registration_captcha: false
+
+# vim:ft=yaml
