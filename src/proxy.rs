@@ -103,7 +103,7 @@ async fn update_indentity(
         let _lock = update_lock.lock().await;
         // **
         let client = matrix_sdk::ruma::Client::builder()
-            .homeserver_url(CONFIG.synapse.host.to_owned())
+            .homeserver_url(CONFIG.dendrite.host.to_owned())
             .access_token(Some(auth.token().to_owned()))
             .http_client(client.to_owned())
             .await
@@ -178,7 +178,7 @@ async fn passthrough(
         .map(|v| v.as_str())
         .unwrap_or(path);
     tracing::debug!("Pass through request to {} {path}", req.method());
-    let uri = format!("{}{}", CONFIG.synapse.host, path_query);
+    let uri = format!("{}{}", CONFIG.dendrite.host, path_query);
     *req.uri_mut() = Uri::try_from(uri)?;
     let resp = client.request(req).await?;
     Ok(resp)

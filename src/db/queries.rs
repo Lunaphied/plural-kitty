@@ -5,12 +5,21 @@ use super::{models::*, DbError};
 use super::{PK_POOL, SYNAPSE_POOL};
 
 pub async fn get_synapse_user(access_token: &str) -> anyhow::Result<String> {
-    sqlx::query("SELECT user_id FROM access_tokens WHERE token = $1")
-        .bind(access_token)
-        .map(|row| row.get::<String, usize>(0))
-        .fetch_one(&*SYNAPSE_POOL)
-        .await
-        .context("Error getting user from auth token")
+    // Annoying logic to reconstruct a true user_id from the way Dendrite stores it.
+    //
+    // Dendrite also stores these access tokens in a bit of a weird way, they're not in
+    // userapi_login_tokens or userapi_openid_tokens, but instead the bearer tokens are in
+    // userapi_devices, luckily all the data we need is also in there so we get away with
+    // a relatively simple query.
+    sqlx::query(
+        r#"SELECT ('@' || localpart || ':' || server_name)
+        FROM userapi_devices WHERE access_token = $1"#,
+    )
+    .bind(access_token)
+    .map(|row| row.get::<String, usize>(0))
+    .fetch_one(&*SYNAPSE_POOL)
+    .await
+    .context("Error getting user from auth token")
 }
 
 pub async fn get_synapse_profile(mxid: &str) -> anyhow::Result<ProfileInfo> {
@@ -336,7 +345,7 @@ pub async fn list_ignored(mxid: &str) -> sqlx::Result<Vec<String>> {
 }
 
 pub async fn room_alias(room_id: &str) -> sqlx::Result<String> {
-    sqlx::query_scalar("SELECT room_alias FROM room_aliases WHERE room_id = $1")
+    sqlx::query_scalar("SELECT alias FROM roomserver_room_aliases WHERE room_id = $1")
         .bind(room_id)
         .fetch_one(&*SYNAPSE_POOL)
         .await

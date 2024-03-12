@@ -12,7 +12,7 @@ use sqlx::postgres::PgConnectOptions;
 #[derive(Deserialize)]
 pub struct Config {
     pub listen: SocketAddr,
-    pub synapse: SynapseInfo,
+    pub dendrite: DendriteInfo,
     pub bot: BotInfo,
 }
 
@@ -45,7 +45,7 @@ impl BotInfo {
 }
 
 #[derive(Deserialize)]
-pub struct SynapseInfo {
+pub struct DendriteInfo {
     pub host: String,
     pub db: DbInfo,
 }

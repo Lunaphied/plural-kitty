@@ -23,12 +23,12 @@ pub async fn init() -> anyhow::Result<()> {
         ))?;
     sqlx::migrate!().run(&pool).await?;
     PK_POOL.init(pool);
-    let db_opts = CONFIG.synapse.db.db_con_opts().await?;
+    let db_opts = CONFIG.dendrite.db.db_con_opts().await?;
     let pool = PgPoolOptions::new()
         .max_connections(5)
         .connect_with(db_opts.clone())
         .await
-        .context(format!("Error connection to synapse DB at `{db_opts:?}`"))?;
+        .context(format!("Error connection to dendrite DB at `{db_opts:?}`"))?;
     SYNAPSE_POOL.init(pool);
     Ok(())
 }
