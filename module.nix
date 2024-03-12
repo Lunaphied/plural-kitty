@@ -15,16 +15,6 @@ in
         			'';
     };
 
-    user = lib.mkOption {
-      type = lib.types.str;
-      default = "plural-kitty";
-    };
-
-    group = lib.mkOption {
-      type = lib.types.str;
-      default = "plural-kitty";
-    };
-
     logString = lib.mkOption {
       type = lib.types.str;
       default = "warn,plural_kitty=info";
@@ -41,30 +31,34 @@ in
   };
 
   config = lib.mkIf cfg.enable {
+
     systemd.services.plural-kitty = {
       description = "Plural Kitty";
+
       after = [ "network.target" ];
       wantedBy = [ "multi-user.target" ];
+
       environment = {
         RUST_LOG = cfg.logString;
       };
+      
       serviceConfig = {
+        Type = "simple";
+
+        DynamicUser = true;
+
+        StateDirectory = "plural-kitty";
+        WorkingDirectory = "/var/lib/plural-kitty";
+        RuntimeDirectory = "plural-kitty";
+        RuntimeDirectoryMode = "0700";
+
         ExecStart = "${cfg.package}/bin/plural-kitty ${settingsFormat.generate "config.yaml" cfg.settings}";
-        Restart = "always";
+
+        Restart = "on-failure";
         RestartSec = 5;
-        User = cfg.user;
-        Group = cfg.group;
       };
     };
+
     environment.systemPackages = [ cfg.package ];
-    users.users = lib.optionalAttrs (cfg.user == "plural-kitty") {
-      "plural-kitty" = {
-        group = "plural-kitty";
-        isSystemUser = true;
-      };
-    };
-    users.groups = lib.optionalAttrs (cfg.group == "plural-kitty") {
-      "plural-kitty" = { };
-    };
   };
 }
